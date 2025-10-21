@@ -77,10 +77,10 @@
 
             <el-table-column prop="id" label="ID" width="250" fixed="left" align="center">
             </el-table-column>
-            <el-table-column prop="jobType" label="任务类型" width="180" align="center">
+            <el-table-column prop="jobType" label="任务状态" width="180" align="center">
               <template #default="{ row }">
-                <el-tag :type="getJobTypeTagType(row.jobType)" size="small">
-                  {{ row.jobType }}
+                <el-tag :type="getJobStatusTagType(row.jobStatus)" size="small">
+                  {{ row.jobStatus }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -96,10 +96,16 @@
             <el-table-column prop="repeatInterval" label="执行周期" width="180" align="center">
             </el-table-column>
             <el-table-column prop="maxNumberOfRuns" label="最大运行次数" width="180" align="center">
+              <template #default="{ row }">
+                  {{ row.maxNumberOfRuns === 0 ? '无限制' : row.maxNumberOfRuns }}
+              </template>
             </el-table-column>
             <el-table-column prop="numberOfErrors" label="错误数次" width="180" align="center">
             </el-table-column>
             <el-table-column prop="maxNumberOfErrors" label="最大错误次数" width="180" align="center">
+              <template #default="{ row }">
+                  {{ row.maxNumberOfErrors === 0 ? '无限制' : row.maxNumberOfErrors }}
+              </template>
             </el-table-column>
             <el-table-column prop="startTime" label="开始时间" width="250" align="center">
               <template #default="{ row }">
@@ -172,20 +178,20 @@ const tableRef = ref(null)
 const scheduleData = [
   {
     id: 'job-1',
-    jobType: 'cron',
+    jobStatus: '在线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
     nextRunTime: '2023-05-10 16:30:00 「几秒内」',
     numberOfRuns: 101,
     numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
+    maxNumberOfRuns: 0,
     maxNumberOfErrors: 100,
     description: 'Sample Job 1',
     repeatInterval: "DailyAt(10)",
   }, {
     id: 'job-2',
-    jobType: 'cron',
+    jobStatus: '在线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
@@ -193,18 +199,18 @@ const scheduleData = [
     numberOfRuns: 101,
     numberOfErrors: 0,
     maxNumberOfRuns: 1000,
-    maxNumberOfErrors: 100,
+    maxNumberOfErrors: 0,
     description: 'Sample Job 1',
     repeatInterval: "DailyAt(10)",
   }, {
     id: 'job-3',
-    jobType: 'cron',
+    jobStatus: '在线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
     nextRunTime: '2023-05-10 16:30:00 「几秒内」',
     numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
+    maxNumberOfRuns: 0,
     maxNumberOfErrors: 100,
     numberOfRuns: 2311,
     description: 'Sample Job 1',
@@ -212,7 +218,7 @@ const scheduleData = [
 
   }, {
     id: 'job-4',
-    jobType: 'cron',
+    jobStatus: '在线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
@@ -225,7 +231,7 @@ const scheduleData = [
     repeatInterval: "DailyAt(10)",
   }, {
     id: 'job-5',
-    jobType: 'cron',
+    jobStatus: '在线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
@@ -238,7 +244,7 @@ const scheduleData = [
     repeatInterval: "DailyAt(10)",
   }, {
     id: 'job-6',
-    jobType: 'cron',
+    jobStatus: '离线',
     runOnStart: true,
     startTime: '2025-01-01 00:00:00',
     lastRunTime: '2023-05-10 14:30:00 「几秒前」',
@@ -306,9 +312,9 @@ const handleRowClick = (row, column, event) => {
   }
 }
 
-const getJobTypeTagType = (jobType) => {
-  if (jobType.includes('Program')) return 'info'
-  return 'primary'
+const getJobStatusTagType = (jobType) => {
+  if (jobType === "在线") return 'primary'
+  return 'warning'
 }
 
 const handleAction = (command) => {
@@ -453,7 +459,6 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
 /* 主内容区域 */
@@ -478,7 +483,7 @@ body {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 25px;
+  margin: 15px;
   overflow: hidden;
   width: 500px;
   transition: all 0.3s ease;
@@ -487,7 +492,7 @@ body {
 /* 暗黑模式下的展开卡片 - 确保边框样式优先级最高 */
 .dark .expand-card,
 .dark-mode-card {
-  background-color: #3a3b42 !important;
+  background-color: var(--bg-secondary) !important;
   border: 1px solid #3a3a3a !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   outline: none !important;
@@ -524,8 +529,12 @@ body {
   padding: 12px;
 }
 
+.el-table__expanded-cell {
+  background-color: #f6f2f2 !important;
+}
+
 .dark .el-table__expanded-cell {
-  background-color: #383b3c !important;
+  background-color: #253033 !important;
 }
 
 .dark .el-table__header th {
