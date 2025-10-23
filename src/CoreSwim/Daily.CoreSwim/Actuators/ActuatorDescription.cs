@@ -10,12 +10,6 @@ public class ActuatorDescription
     public string JobId { get; set; }
 
     /// <summary>
-    /// 执行作业的Type
-    /// </summary>
-    [JsonIgnore]
-    public Type JobType { get; set; }
-
-    /// <summary>
     /// Job是否在线
     /// </summary>
     public bool JobOnline { get; set; }

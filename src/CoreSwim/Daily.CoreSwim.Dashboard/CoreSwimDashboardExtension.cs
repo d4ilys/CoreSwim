@@ -28,7 +28,6 @@ namespace Daily.CoreSwim.Dashboard
                     var body = new ActuatorDescriptionResponseBody
                     {
                         JobId = description.JobId,
-                        JobType = description.JobType,
                         JobOnline = description.JobOnline,
                         Description = description.Description,
                         RunOnStart = description.RunOnStart,

@@ -3,7 +3,10 @@ using Daily.CoreSwim.Actuators;
 using Daily.CoreSwim.Configs;
 using Daily.CoreSwim.Retaining;
 using System.Collections.Concurrent;
+using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.Text.Json;
+using System.Threading.Channels;
 
 namespace Daily.CoreSwim
 {
@@ -27,15 +30,17 @@ namespace Daily.CoreSwim
         public CoreSwim AddJob<TJob>(string jobId, ActuatorBuilder actuatorBuilder)
             where TJob : class, IJob
         {
+            Config.Aop.AddJobBefore?.Invoke(actuatorBuilder);
             var actuator = actuatorBuilder.Build();
             actuator.JobId = jobId;
             actuator.JobType = typeof(TJob);
             actuator.JobOnline = true;
             actuator.StartTime = Penetrates.GetStandardDateTime(DateTime.Now);
+
             Config.ActuatorStore.SaveJobsAsync(jobId, actuator);
             Config.Persistence?.SaveJobsAsync(actuator);
             Config.Logger.Info<CoreSwim>($"<{actuator.JobId}> Already added and initialized completed.");
-
+            Config.Aop.AddJobAfter?.Invoke(actuator);
             return this;
         }
 
@@ -97,34 +102,14 @@ namespace Daily.CoreSwim
 
         public async Task ExecuteJobAsync(string jobId, CancellationToken stoppingToken)
         {
-            //判断可以执行运行
-            if (!await CanItBeExecutedAsync(jobId))
-            {
-                return;
-            }
-
             var actuator = await Config.ActuatorStore.GetJobAsync(jobId);
 
-            //判断是否超过最大运行次数
-            if (actuator.MaxNumberOfRuns != 0)
+            if (actuator == null)
             {
-                if (actuator.NumberOfRuns >= actuator.MaxNumberOfRuns)
-                {
-                    Config.Logger.Info<CoreSwim>(
-                        $"<{actuator.JobId}> The number of runs has reached the maximum limit and will be deleted.");
-                    RemoveJob(jobId);
-                }
-            }
-
-            //判断是否超过最大错误次数
-            if (actuator.MaxNumberOfErrors != 0)
-            {
-                if (actuator.NumberOfErrors >= actuator.MaxNumberOfErrors)
-                {
-                    Config.Logger.Info<CoreSwim>(
-                        $"<{actuator.JobId}> The number of errors has reached the maximum limit and will be deleted.");
-                    RemoveJob(jobId);
-                }
+                Config.Logger.Warning<CoreSwim>(
+                    $"<{jobId}> The job does not exist and will be deleted.");
+                RemoveJob(jobId);
+                return;
             }
 
             var startAt = Penetrates.GetStandardDateTime(DateTime.Now);
@@ -134,40 +119,72 @@ namespace Daily.CoreSwim
         private async Task ExecuteJobAsync(Actuator actuator, DateTime startAt, string triggerType,
             CancellationToken stoppingToken)
         {
+            Config.Aop.ExecuteJobBefore?.Invoke(actuator);
             var startTime = DateTime.Now;
-            var sw = Stopwatch.StartNew();
-            var actuatorExecutionRecord = new ActuatorExecutionRecord
+            //判断可以执行运行
+            var canItBeExecutedAsync = await CanItBeExecutedAsync(actuator.JobId);
+            if (canItBeExecutedAsync)
             {
-                JobId = actuator.JobId,
-                StartTime = startTime,
-            };
+                var sw = Stopwatch.StartNew();
+                var actuatorExecutionRecord = new ActuatorExecutionRecord
+                {
+                    JobId = actuator.JobId,
+                    StartTime = startTime,
+                };
 
-            try
-            {
-                var jobIns = CreateJobIns(actuator, stoppingToken);
-                await jobIns.ExecuteAsync(stoppingToken);
+
+                //判断是否超过最大运行次数
+                if (actuator.MaxNumberOfRuns != 0)
+                {
+                    if (actuator.NumberOfRuns >= actuator.MaxNumberOfRuns)
+                    {
+                        Config.Logger.Info<CoreSwim>(
+                            $"<{actuator.JobId}> The number of runs has reached the maximum limit and will be deleted.");
+                        RemoveJob(actuator.JobId);
+                    }
+                }
+
+                //判断是否超过最大错误次数
+                if (actuator.MaxNumberOfErrors != 0)
+                {
+                    if (actuator.NumberOfErrors >= actuator.MaxNumberOfErrors)
+                    {
+                        Config.Logger.Info<CoreSwim>(
+                            $"<{actuator.JobId}> The number of errors has reached the maximum limit and will be deleted.");
+                        RemoveJob(actuator.JobId);
+                    }
+                }
+
+                try
+                {
+                    var jobIns = CreateJobIns(actuator, stoppingToken);
+                    await jobIns.ExecuteAsync(stoppingToken);
+                }
+                catch (Exception e)
+                {
+                    actuatorExecutionRecord.Exception = e.ToString();
+                    actuator.NumberOfErrors++;
+                    Config.Logger.Error<CoreSwim>(
+                        $" {DateTime.Now:yyyy-MM-dd HH:mm:ss} <{actuator.JobId}> Execution exception occurred .");
+                }
+                finally
+                {
+                    sw.Stop();
+                    actuatorExecutionRecord.EndTime = DateTime.Now;
+                    actuatorExecutionRecord.TriggerType = triggerType;
+                    actuatorExecutionRecord.Duration = sw.ElapsedMilliseconds;
+                    Config.Persistence?.SaveJobsExecutionRecordAsync(actuatorExecutionRecord);
+
+                    actuator.LastRunTime = startAt;
+                    actuator.NumberOfRuns++;
+                    actuatorExecutionRecord.NumberOfRuns = actuator.NumberOfRuns;
+                    Config.Logger.Info<CoreSwim>(
+                        $"<{actuator.JobId}> Implemented at {DateTime.Now:yyyy-MM-dd HH:mm:ss}.");
+                }
             }
-            catch (Exception e)
-            {
-                actuatorExecutionRecord.Exception = e.ToString();
-                actuator.NumberOfErrors++;
-                Config.Logger.Error<CoreSwim>(
-                    $" {DateTime.Now:yyyy-MM-dd HH:mm:ss} <{actuator.JobId}> Execution exception occurred .");
-            }
-            finally
-            {
-                sw.Stop();
-                actuatorExecutionRecord.EndTime = DateTime.Now;
-                actuatorExecutionRecord.TriggerType = triggerType;
-                actuatorExecutionRecord.Duration = sw.ElapsedMilliseconds;
-                Config.Persistence?.SaveJobsExecutionRecordAsync(actuatorExecutionRecord);
-                actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
-                actuator.LastRunTime = startAt;
-                actuator.NumberOfRuns++;
-                actuatorExecutionRecord.NumberOfRuns = actuator.NumberOfRuns;
-                Config.Logger.Info<CoreSwim>(
-                    $"<{actuator.JobId}> Implemented at {DateTime.Now:yyyy-MM-dd HH:mm:ss}.");
-            }
+
+            actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
+            Config.Aop.ExecuteJobAfter?.Invoke(actuator);
         }
 
         protected async Task<bool> BackgroundProcessingAsync(CancellationToken stoppingToken)
@@ -178,11 +195,26 @@ namespace Daily.CoreSwim
                 var allJob = await Config.ActuatorStore.GetAllJobAsync();
                 //检查是否有任务需要执行
                 var nextRunTimes =
-                    allJob.Values.Where(actuator => actuator.NextRunTime.HasValue && actuator.NextRunTime <= startAt);
+                    allJob.Values.Where(actuator =>
+                        actuator.NextRunTime.HasValue && actuator.NextRunTime <= startAt);
 
                 //并行执行
                 await Parallel.ForEachAsync(nextRunTimes, stoppingToken,
-                    async (actuator, token) => await ExecuteJobAsync(actuator, startAt, "系统", token));
+                    async (actuator, token) =>
+                    {
+                        if (Config.Tenant.Tenants.Any())
+                        {
+                            _ = Parallel.ForEachAsync(Config.Tenant.Tenants, token, async (tenant, cancellationToken) =>
+                            {
+                                Config.Tenant.CurrentTenantContextSetting?.Invoke(tenant);
+                                await ExecuteJobAsync(actuator, startAt, "系统", cancellationToken);
+                            });
+                        }
+                        else
+                        {
+                            await ExecuteJobAsync(actuator, startAt, "系统", token);
+                        }
+                    });
             }
             catch (Exception e)
             {
@@ -197,6 +229,7 @@ namespace Daily.CoreSwim
         protected async Task<bool> SleepAsync(DateTime startAt, CancellationToken stoppingToken)
         {
             var allJob = await Config.ActuatorStore.GetAllJobAsync();
+
             // 获取最早触发的时间
             var earliestTriggerTimes =
                 allJob.Values.Where(a => a.NextRunTime.HasValue).Where(actuator => actuator.NextRunTime.HasValue)

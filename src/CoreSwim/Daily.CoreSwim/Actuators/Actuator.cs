@@ -1,9 +1,16 @@
-﻿using Daily.CoreSwim.Retaining;
+﻿using System.Text.Json.Serialization;
+using Daily.CoreSwim.Retaining;
 
 namespace Daily.CoreSwim.Actuators
 {
     public class Actuator : ActuatorDescription
     {
+        /// <summary>
+        /// 执行作业的Type
+        /// </summary>
+        [JsonIgnore]
+        public Type JobType { get; set; }
+
         /// <summary>
         /// 获取下一次触发时间
         /// </summary>

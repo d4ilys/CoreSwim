@@ -14,10 +14,13 @@ namespace Daily.CoreSwim.Distributed
     public class CoreSwimDistributed : CoreSwim
     {
         private readonly DistributedTaskCoordinateFactory _distributedTaskCoordinateFactory;
+
         public CoreSwimDistributed(RedisClient redisClient)
         {
-            _distributedTaskCoordinateFactory = new(redisClient,this);
-            Config.ActuatorStore = new DistributedActuatorStore();
+            _distributedTaskCoordinateFactory = new(redisClient, this);
+            Config.ActuatorStore = new DistributedActuatorStore(redisClient);
+            //预热模式
+            Config.Aop.AddJobAfter += a => _ = _distributedTaskCoordinateFactory.Create(a.JobId);
         }
 
         protected override Task<bool> CanItBeExecutedAsync(string jobId)

@@ -18,9 +18,9 @@ namespace Daily.CoreSwim.Actuators
             return Task.CompletedTask;
         }
 
-        public Task<Actuator> GetJobAsync(string jobId)
+        public Task<Actuator?> GetJobAsync(string jobId)
         {
-            return Task.FromResult(_jobs[jobId]);
+            return Task.FromResult(_jobs.GetValueOrDefault(jobId));
         }
 
         public Task<ConcurrentDictionary<string, Actuator>> GetAllJobAsync()

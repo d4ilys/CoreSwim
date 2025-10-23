@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Daily.CoreSwim.Distributed\Daily.CoreSwim.Distributed.csproj" />
       <ProjectReference Include="..\Daily.CoreSwim\Daily.CoreSwim.csproj" />
     </ItemGroup>
 

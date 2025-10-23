@@ -12,7 +12,7 @@ namespace Daily.CoreSwim.Abstraction
     {
         Task SaveJobsAsync(string jobId, Actuator actuator);
 
-        Task<Actuator> GetJobAsync(string jobId);
+        Task<Actuator?> GetJobAsync(string jobId);
 
         Task<ConcurrentDictionary<string, Actuator>> GetAllJobAsync();
 

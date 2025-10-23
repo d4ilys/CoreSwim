@@ -1,5 +1,6 @@
-﻿using System.Collections.Concurrent;
-using FreeRedis;
+﻿using FreeRedis;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace Daily.CoreSwim.Distributed
 {
@@ -15,16 +16,16 @@ namespace Daily.CoreSwim.Distributed
         internal void InitializeSingleTask(string taskKey)
         {
             _taskKey = GenerateRedisKey(taskKey);
-            _taskLockKey = GenerateRedisKey($"{taskKey}_lock");
+            _taskLockKey = GenerateRedisKey($"{_taskKey}_lock");
 
-            if (!client.Exists(taskKey))
+            if (!client.Exists(_taskKey))
             {
-                InternalInit(taskKey);
+                InternalInit(_taskKey);
             }
             else
             {
-                var value = client.Get<int>(taskKey);
-                SingeTaskCache.TaskNumbers.TryAdd(taskKey, value);
+                var value = client.Get<int>(_taskKey);
+                SingeTaskCache.TaskNumbers.TryAdd(_taskKey, value);
             }
         }
 
@@ -38,6 +39,7 @@ namespace Daily.CoreSwim.Distributed
         public async Task<bool> GrabTheTaskAsync()
         {
             var isRun = false;
+            SingeTaskCache.TaskNumbers.TryGetValue(_taskKey, out var value);
             //分布式锁拦截
             await LockAsync(_taskLockKey, 1, async run =>
             {
@@ -50,12 +52,13 @@ namespace Daily.CoreSwim.Distributed
                     }
 
                     var rTask = await client.GetAsync<long>(_taskKey);
+
                     if (rTask > value)
                     {
                         //不能执行,当前任务+1
                         var newValue = value + 1;
                         SingeTaskCache.TaskNumbers.TryUpdate(_taskKey, newValue, value);
-                        coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}已经被其他节点执行.");
+                        coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}-{value}已经被其他节点执行.");
                     }
                     else if (rTask == value)
                     {
@@ -65,11 +68,11 @@ namespace Daily.CoreSwim.Distributed
                         try
                         {
                             isRun = true;
-                            coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}在本节点执行成功..");
+                            coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}-{value}在本节点执行成功..");
                         }
                         catch
                         {
-                            coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}在本节点执行错误..");
+                            coreSwim.Config.Logger.Info<DistributedTaskCoordinate>($"{_taskKey}-{value}在本节点执行错误..");
                         }
                     }
                     else if (rTask < value)
@@ -96,7 +99,7 @@ namespace Daily.CoreSwim.Distributed
 
         private string GenerateRedisKey(string text)
         {
-            return $"daily_coreSwim_{text}";
+            return $"daily_coreSwim_{Assembly.GetEntryAssembly()!.GetName().Name}_{text}";
         }
     }
 }
