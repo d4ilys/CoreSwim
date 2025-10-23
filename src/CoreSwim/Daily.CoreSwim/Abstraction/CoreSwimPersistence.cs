@@ -34,15 +34,6 @@ namespace Daily.CoreSwim.Abstraction
             CoreSwim.RemoveJob(jobId);
         }
 
-        /// <summary>
-        /// 删除任务
-        /// </summary>
-        public virtual Task DeleteJobAsync(string jobId, Action coreSwimDeleteJob)
-        {
-            _actuatorDescriptions.RemoveAll(x => x.JobId == jobId);
-            coreSwimDeleteJob();
-            return Task.CompletedTask;
-        }
 
         /// <summary>
         /// 获取任务
@@ -63,6 +54,7 @@ namespace Daily.CoreSwim.Abstraction
 
             // 分页
             var data = query
+                .OrderByDescending(a => a.StartTime)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize);
             var total = _actuatorDescriptions.Count;
@@ -89,13 +81,28 @@ namespace Daily.CoreSwim.Abstraction
         /// <param name="pageSize"></param>
         /// <returns></returns>
         public virtual Task<(IEnumerable<ActuatorExecutionRecord>, int)> GetJobsExecutionRecordsAsync(
+            string jobId,
             int pageNumber,
             int pageSize)
         {
             // 分页
             var data = _actuatorExecutionRecords
+                .Where(a => a.JobId == jobId)
+                .OrderByDescending(record => record.StartTime)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize);
+            foreach (var description in data)
+            {
+                description.StartTime = new DateTime(description.StartTime.Year,
+                    description.StartTime.Month,
+                    description.StartTime.Day, description.StartTime.Hour, description.StartTime.Minute,
+                    description.StartTime.Second);
+                description.EndTime = new DateTime(description.EndTime.Year,
+                    description.EndTime.Month,
+                    description.EndTime.Day, description.EndTime.Hour, description.EndTime.Minute,
+                    description.EndTime.Second);
+            }
+
             var total = _actuatorExecutionRecords.Count;
             var result = (data, total);
             return Task.FromResult(result);

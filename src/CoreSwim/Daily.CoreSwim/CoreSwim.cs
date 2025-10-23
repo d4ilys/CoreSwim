@@ -3,13 +3,12 @@ using Daily.CoreSwim.Actuators;
 using Daily.CoreSwim.Configs;
 using Daily.CoreSwim.Retaining;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Daily.CoreSwim
 {
-    public sealed class CoreSwim
+    public class CoreSwim : ICoreSwim
     {
-        private readonly ConcurrentDictionary<string, Actuator> _jobs = new();
-
         /// <summary>
         /// 配置
         /// </summary>
@@ -17,7 +16,7 @@ namespace Daily.CoreSwim
 
         public CoreSwim()
         {
-             Config = new CoreSwimConfig(this);
+            Config = new CoreSwimConfig(this);
         }
 
         /// <summary>
@@ -31,13 +30,21 @@ namespace Daily.CoreSwim
             var actuator = actuatorBuilder.Build();
             actuator.JobId = jobId;
             actuator.JobType = typeof(TJob);
-            _jobs.TryAdd(jobId, actuator);
+            actuator.JobOnline = true;
+            actuator.StartTime = Penetrates.GetStandardDateTime(DateTime.Now);
+            Config.ActuatorStore.SaveJobsAsync(jobId, actuator);
             Config.Persistence?.SaveJobsAsync(actuator);
             Config.Logger.Info<CoreSwim>($"<{actuator.JobId}> Already added and initialized completed.");
 
             return this;
         }
 
+        /// <summary>
+        /// 添加任务
+        /// </summary>
+        /// <typeparam name="TJob"></typeparam>
+        /// <param name="actuatorBuilder"></param>
+        /// <returns></returns>
         public CoreSwim AddJob<TJob>(ActuatorBuilder actuatorBuilder)
             where TJob : class, IJob
         {
@@ -46,18 +53,26 @@ namespace Daily.CoreSwim
             return this;
         }
 
-        public async Task StartAsync(CancellationToken stoppingToken)
+        /// <summary>
+        /// 执行作业
+        /// </summary>
+        /// <param name="stoppingToken"></param>
+        /// <returns></returns>
+        public Task StartAsync(CancellationToken stoppingToken)
         {
-            Config.Logger.Info<CoreSwim>("CoreSwim is starting...");
-
-            await RunOnStartJobsAsync(stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
+            return Task.Factory.StartNew(async () =>
             {
-                var isBreak = await BackgroundProcessingAsync(stoppingToken);
+                Config.Logger.Info<CoreSwim>("CoreSwim is starting...");
 
-                if (!isBreak) break;
-            }
+                await RunOnStartJobsAsync(stoppingToken);
+
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    var isBreak = await BackgroundProcessingAsync(stoppingToken);
+
+                    if (!isBreak) break;
+                }
+            }, TaskCreationOptions.LongRunning);
         }
 
         /// <summary>
@@ -67,17 +82,28 @@ namespace Daily.CoreSwim
         /// <returns></returns>
         public bool RemoveJob(string jobId)
         {
-            return _jobs.TryRemove(jobId, out _);
+            return Config.ActuatorStore.RemoveJob(jobId);
         }
 
         public void StopAsync()
         {
-            _jobs.Clear();
+            Config.ActuatorStore.ClearAllJobs();
         }
 
-        public Task ExecuteJobAsync(string jobId, CancellationToken stoppingToken)
+        protected virtual Task<bool> CanItBeExecutedAsync(string jobId)
         {
-            var actuator = _jobs[jobId];
+            return Task.FromResult(true);
+        }
+
+        public async Task ExecuteJobAsync(string jobId, CancellationToken stoppingToken)
+        {
+            //判断可以执行运行
+            if (!await CanItBeExecutedAsync(jobId))
+            {
+                return;
+            }
+
+            var actuator = await Config.ActuatorStore.GetJobAsync(jobId);
 
             //判断是否超过最大运行次数
             if (actuator.MaxNumberOfRuns != 0)
@@ -87,7 +113,6 @@ namespace Daily.CoreSwim
                     Config.Logger.Info<CoreSwim>(
                         $"<{actuator.JobId}> The number of runs has reached the maximum limit and will be deleted.");
                     RemoveJob(jobId);
-                    return Task.CompletedTask;
                 }
             }
 
@@ -99,47 +124,65 @@ namespace Daily.CoreSwim
                     Config.Logger.Info<CoreSwim>(
                         $"<{actuator.JobId}> The number of errors has reached the maximum limit and will be deleted.");
                     RemoveJob(jobId);
-                    return Task.CompletedTask;
                 }
             }
 
-
             var startAt = Penetrates.GetStandardDateTime(DateTime.Now);
-            return ExecuteJobAsync(actuator, startAt, stoppingToken);
+            await ExecuteJobAsync(actuator, startAt, "主动", stoppingToken);
         }
 
-        internal async Task ExecuteJobAsync(Actuator actuator, DateTime startAt, CancellationToken stoppingToken)
+        private async Task ExecuteJobAsync(Actuator actuator, DateTime startAt, string triggerType,
+            CancellationToken stoppingToken)
         {
+            var startTime = DateTime.Now;
+            var sw = Stopwatch.StartNew();
+            var actuatorExecutionRecord = new ActuatorExecutionRecord
+            {
+                JobId = actuator.JobId,
+                StartTime = startTime,
+            };
+
             try
             {
                 var jobIns = CreateJobIns(actuator, stoppingToken);
                 await jobIns.ExecuteAsync(stoppingToken);
-                actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
-                actuator.LastRunTime = startAt;
-                actuator.NumberOfRuns++;
-                Config.Logger.Info<CoreSwim>(
-                    $"<{actuator.JobId}> Implemented at {DateTime.Now:yyyy-MM-dd HH:mm:ss}.");
             }
             catch (Exception e)
             {
+                actuatorExecutionRecord.Exception = e.ToString();
                 actuator.NumberOfErrors++;
                 Config.Logger.Error<CoreSwim>(
                     $" {DateTime.Now:yyyy-MM-dd HH:mm:ss} <{actuator.JobId}> Execution exception occurred .");
             }
+            finally
+            {
+                sw.Stop();
+                actuatorExecutionRecord.EndTime = DateTime.Now;
+                actuatorExecutionRecord.TriggerType = triggerType;
+                actuatorExecutionRecord.Duration = sw.ElapsedMilliseconds;
+                Config.Persistence?.SaveJobsExecutionRecordAsync(actuatorExecutionRecord);
+                actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
+                actuator.LastRunTime = startAt;
+                actuator.NumberOfRuns++;
+                actuatorExecutionRecord.NumberOfRuns = actuator.NumberOfRuns;
+                Config.Logger.Info<CoreSwim>(
+                    $"<{actuator.JobId}> Implemented at {DateTime.Now:yyyy-MM-dd HH:mm:ss}.");
+            }
         }
 
-        private async Task<bool> BackgroundProcessingAsync(CancellationToken stoppingToken)
+        protected async Task<bool> BackgroundProcessingAsync(CancellationToken stoppingToken)
         {
             var startAt = Penetrates.GetStandardDateTime(DateTime.Now);
             try
             {
+                var allJob = await Config.ActuatorStore.GetAllJobAsync();
                 //检查是否有任务需要执行
                 var nextRunTimes =
-                    _jobs.Values.Where(actuator => actuator.NextRunTime.HasValue && actuator.NextRunTime <= startAt);
+                    allJob.Values.Where(actuator => actuator.NextRunTime.HasValue && actuator.NextRunTime <= startAt);
 
                 //并行执行
                 await Parallel.ForEachAsync(nextRunTimes, stoppingToken,
-                    async (actuator, token) => await ExecuteJobAsync(actuator, startAt, token));
+                    async (actuator, token) => await ExecuteJobAsync(actuator, startAt, "系统", token));
             }
             catch (Exception e)
             {
@@ -151,11 +194,12 @@ namespace Daily.CoreSwim
             return await SleepAsync(startAt, stoppingToken);
         }
 
-        private async Task<bool> SleepAsync(DateTime startAt, CancellationToken stoppingToken)
+        protected async Task<bool> SleepAsync(DateTime startAt, CancellationToken stoppingToken)
         {
+            var allJob = await Config.ActuatorStore.GetAllJobAsync();
             // 获取最早触发的时间
             var earliestTriggerTimes =
-                _jobs.Values.Where(a => a.NextRunTime.HasValue).Where(actuator => actuator.NextRunTime.HasValue)
+                allJob.Values.Where(a => a.NextRunTime.HasValue).Where(actuator => actuator.NextRunTime.HasValue)
                     .Select(actuator => actuator.NextRunTime).ToList();
 
             if (earliestTriggerTimes.Any())
@@ -180,14 +224,15 @@ namespace Daily.CoreSwim
         /// 执行RunOnStart的任务
         /// </summary>
         /// <param name="stoppingToken"></param>
-        private async Task RunOnStartJobsAsync(CancellationToken stoppingToken)
+        protected async Task RunOnStartJobsAsync(CancellationToken stoppingToken)
         {
-            var allJobs = _jobs.Select(pair => pair.Value).ToList();
+            var allJob = await Config.ActuatorStore.GetAllJobAsync();
+            var allJobSelect = allJob.Select(pair => pair.Value).ToList();
             var startAt = Penetrates.GetStandardDateTime(DateTime.Now);
-            await Parallel.ForEachAsync(allJobs.Where(a => a.RunOnStart), stoppingToken,
-                async (actuator, token) => await ExecuteJobAsync(actuator, startAt, token));
+            await Parallel.ForEachAsync(allJobSelect.Where(a => a.RunOnStart), stoppingToken,
+                async (actuator, token) => await ExecuteJobAsync(actuator, startAt, "系统", token));
 
-            foreach (var actuator in allJobs.Where(a => !a.RunOnStart))
+            foreach (var actuator in allJobSelect.Where(a => !a.RunOnStart))
             {
                 actuator.NextRunTime ??= actuator.GetNextOccurrence(startAt);
             }
@@ -202,10 +247,7 @@ namespace Daily.CoreSwim
         internal IJob CreateJobIns(Actuator actuator, CancellationToken stoppingToken)
         {
             var jobType = actuator.JobType;
-            actuator.JobInsInstanceBuilder ??= (type) =>
-                Activator.CreateInstance(type);
-
-            var jobIns = (IJob)actuator.JobInsInstanceBuilder!(jobType)!;
+            var jobIns = (IJob)Config.ActivatorCreateInstance!(jobType)!;
             return jobIns;
         }
     }

@@ -26,7 +26,7 @@ namespace Daily.CoreSwim.Actuators
         /// <summary>
         /// 运行时长
         /// </summary>
-        public string Duration { get; set; }
+        public long Duration { get; set; }
 
         /// <summary>
         /// 异常信息
@@ -34,8 +34,13 @@ namespace Daily.CoreSwim.Actuators
         public string Exception { get; set; }
 
         /// <summary>
+        /// 触发次数
+        /// </summary>
+        public long NumberOfRuns { get; set; }
+
+        /// <summary>
         /// 触发类型
         /// </summary>
-        public string TirggerType { get; set; }
+        public string TriggerType { get; set; }
     }
 }

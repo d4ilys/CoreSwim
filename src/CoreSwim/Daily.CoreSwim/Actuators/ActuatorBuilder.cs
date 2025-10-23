@@ -1,4 +1,5 @@
-﻿using Daily.CoreSwim.Retaining;
+﻿using System.Text.Json;
+using Daily.CoreSwim.Retaining;
 
 namespace Daily.CoreSwim.Actuators;
 
@@ -9,12 +10,14 @@ public class ActuatorBuilder
     public ActuatorBuilder Period(long interval)
     {
         _actuator = new PeriodActuator(interval);
+        _actuator.RepeatInterval = $"Period<{interval}ms>";
         return this;
     }
 
     public ActuatorBuilder Cron(string expression, object args)
     {
         _actuator = new CronActuator(expression, args);
+        _actuator.RepeatInterval = $"Cron<{expression}-{JsonSerializer.Serialize(args)}>";
         return this;
     }
 
@@ -22,7 +25,8 @@ public class ActuatorBuilder
     {
         _actuator = new Actuator
         {
-            NextRunTime = Penetrates.GetStandardDateTime(dateTime)
+            NextRunTime = Penetrates.GetStandardDateTime(dateTime),
+            RepeatInterval = $"DateTime<{dateTime}>"
         };
         return this;
     }
@@ -63,13 +67,6 @@ public class ActuatorBuilder
         {
             throw new InvalidOperationException("请先调用 Period 或 Cron 方法");
         }
-    }
-
-
-    public ActuatorBuilder SetJobTypeJobInsInstanceBuilder(Func<Type, object> jobInsInstanceBuilder)
-    {
-        _actuator!.JobInsInstanceBuilder = jobInsInstanceBuilder;
-        return this;
     }
 
     internal Actuator Build()

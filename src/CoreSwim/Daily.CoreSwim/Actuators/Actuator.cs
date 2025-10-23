@@ -5,11 +5,6 @@ namespace Daily.CoreSwim.Actuators
     public class Actuator : ActuatorDescription
     {
         /// <summary>
-        /// 作业实例构建器
-        /// </summary>
-        public Func<Type, object>? JobInsInstanceBuilder { get; set; }
-
-        /// <summary>
         /// 获取下一次触发时间
         /// </summary>
         /// <param name="startAt"></param>

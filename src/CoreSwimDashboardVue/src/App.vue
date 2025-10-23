@@ -29,58 +29,56 @@
       <!-- 主要内容区域 -->
       <main class="dashboard-main">
         <div class="table-container">
-          <el-table v-loading="loading" :data="scheduleData" style="width: 100%" row-key="id" :border="false"
+          <el-table v-loading="loading" :data="scheduleData" style="width: 100%" row-key="jobId" :border="false"
                     :header-cell-style="headerCellStyle" :cell-style="cellStyle" :row-style="rowStyle"
                     @row-click="handleRowClick" ref="tableRef">
             <!-- 展开行 -->
             <el-table-column type="expand">
               <template #default="{ row }">
                 <div class="expand-card" :class="{ 'dark-mode-card': isDarkMode }">
-                  <el-timeline style="padding: 20px">
-
-                    <el-timeline-item timestamp="2025/4/12 12:03:01" type="primary" icon="MoreFilled" placement="top">
+                  <el-timeline v-if="row.executionRecords.length > 0"  style="padding: 20px">
+                    <el-timeline-item v-for=" (item, index) in row.executionRecords"
+                                      :key="index" :timestamp="item.startTime"
+                                      type="primary" icon="MoreFilled" placement="top">
                       <el-space direction="vertical" alignment="normal">
-                        <div class="timeline-container-content">第&nbsp;<el-tag type="success" size="small">58</el-tag>&nbsp;次运行,
-                          耗时&nbsp;<el-tag type="success" size="small">1000ms</el-tag>&nbsp;
+                        <div class="timeline-container-content">第&nbsp;<el-tag type="success" size="small">
+                          {{ item.numberOfRuns }}
+                        </el-tag>&nbsp;次运行,
+                          耗时&nbsp;<el-tag type="success" size="small">{{ item.duration }}ms</el-tag>&nbsp;
+                        </div>
+                        <div class="timeline-container-content">结束时间：
+                          {{ item.endTime }}
+                        </div>
+                        <div class="timeline-container-content">触发方式：
+                          {{ item.triggerType }}
                         </div>
                         <div class="timeline-container-content">状态：
-                          <el-tag type="success"  size="small">完成</el-tag>
-                        </div>
-                      </el-space>
-                    </el-timeline-item>
-                    <el-timeline-item timestamp="2025/4/12 12:01:01" placement="top">
-                      <el-space direction="vertical" alignment="normal">
-                        <div class="timeline-container-content">第&nbsp;<el-tag type="success" size="small">57</el-tag>&nbsp;次运行,
-                          耗时&nbsp;<el-tag type="success" size="small">1000ms</el-tag>&nbsp;
-                        </div>
-                        <div class="timeline-container-content">状态：
-                          <el-tag type="warning" style="cursor: pointer"  size="small">异常</el-tag>
-                        </div>
-                      </el-space>
-                    </el-timeline-item>
-                    <el-timeline-item timestamp="2025/4/12 12:01:01" placement="top">
-                      <el-space direction="vertical" alignment="normal">
-                        <div class="timeline-container-content">第&nbsp;<el-tag type="success" size="small">56</el-tag>&nbsp;次运行,
-                          耗时&nbsp;<el-tag type="success" size="small">1000ms</el-tag>&nbsp;
-                        </div>
-                        <div class="timeline-container-content">状态：
-                          <el-tag type="success"  size="small">完成</el-tag>
+                          <el-tooltip
+                              v-if="item.exception"
+                              :content="item.exception"
+                              :popperStyle="{
+                                maxWidth: '500px',
+                              }"
+                              placement="top-start"
+                          >
+                            <el-tag type="success" size="small"> 失败</el-tag>
+                          </el-tooltip>
+                          <el-tag type="warning" size="small" v-else >成功</el-tag>
                         </div>
                       </el-space>
                     </el-timeline-item>
 
                   </el-timeline>
+                  <el-empty v-else :image-size="200" />
                 </div>
               </template>
             </el-table-column>
-            <!-- 表格列 -->
-
-            <el-table-column prop="id" label="ID" width="250" fixed="left" align="center">
+            <el-table-column prop="jobId" label="ID" width="250" fixed="left" align="center">
             </el-table-column>
-            <el-table-column prop="jobType" label="任务状态" width="180" align="center">
+            <el-table-column prop="jobOnline" label="状态" width="100" align="center">
               <template #default="{ row }">
-                <el-tag :type="getJobStatusTagType(row.jobStatus)" size="small">
-                  {{ row.jobStatus }}
+                <el-tag :type="getJobOnlineTagType(row.jobOnline)" size="small">
+                  {{ row.jobOnline ? "在线" : "离线" }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -88,28 +86,34 @@
             </el-table-column>
             <el-table-column prop="numberOfRuns" label="执行次数" width="130" align="center">
               <template #default="{ row }">
-                <el-tag type="success"  size="small">
+                <el-tag type="success" size="small">
                   {{ row.numberOfRuns || 0 }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="repeatInterval" label="执行周期" width="180" align="center">
-            </el-table-column>
-            <el-table-column prop="maxNumberOfRuns" label="最大运行次数" width="180" align="center">
+            <el-table-column prop="repeatInterval" label="执行周期" width="280" align="center">
               <template #default="{ row }">
-                  {{ row.maxNumberOfRuns === 0 ? '无限制' : row.maxNumberOfRuns }}
+                <el-tag type="success" size="small">
+                  {{ row.repeatInterval }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="numberOfErrors" label="错误数次" width="180" align="center">
+
+            <el-table-column prop="maxNumberOfRuns" label="最大次数" width="120" align="center">
+              <template #default="{ row }">
+                {{ row.maxNumberOfRuns === 0 ? '无限制' : row.maxNumberOfRuns }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="numberOfErrors" label="错误数次" width="120" align="center">
             </el-table-column>
             <el-table-column prop="maxNumberOfErrors" label="最大错误次数" width="180" align="center">
               <template #default="{ row }">
-                  {{ row.maxNumberOfErrors === 0 ? '无限制' : row.maxNumberOfErrors }}
+                {{ row.maxNumberOfErrors === 0 ? '无限制' : row.maxNumberOfErrors }}
               </template>
             </el-table-column>
             <el-table-column prop="startTime" label="开始时间" width="250" align="center">
               <template #default="{ row }">
-                <el-tag type="danger"  size="small">
+                <el-tag type="danger" size="small">
                   {{ row.startTime }}
                 </el-tag>
               </template>
@@ -117,20 +121,20 @@
 
             <el-table-column prop="lastRunTime" label="最后一次执行时间" width="250" fixed="right" align="center">
               <template #default="{ row }">
-                <el-tag type="warning"  size="small">
-                  {{ row.lastRunTime }}
+                <el-tag type="warning" size="small">
+                  {{ row.lastRunTime ?? "暂无" }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="nextRunTime" label="下一次执行时间" width="250" fixed="right" align="center">
               <template #default="{ row }">
-                <el-tag type="primary"  size="small">
-                  {{ row.nextRunTime }}
+                <el-tag type="primary" size="small">
+                  {{ row.nextRunTime ?? "暂无" }}
                 </el-tag>
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" fixed="right" align="center">
+            <el-table-column label="" fixed="right" align="center">
               <template #default="{ row }">
                 <el-dropdown>
                   <el-icon>
@@ -138,9 +142,24 @@
                   </el-icon>
                   <template #dropdown>
                     <el-dropdown-menu :class="{ 'dark': isDarkMode }">
-                      <el-dropdown-item><el-icon><CircleCheckFilled /></el-icon>启动</el-dropdown-item>
-                      <el-dropdown-item><el-icon><WarningFilled /></el-icon>暂停</el-dropdown-item>
-                      <el-dropdown-item><el-icon><HelpFilled /></el-icon>立即触发</el-dropdown-item>
+                      <el-dropdown-item>
+                        <el-icon>
+                          <CircleCheckFilled/>
+                        </el-icon>
+                        启动
+                      </el-dropdown-item>
+                      <el-dropdown-item>
+                        <el-icon>
+                          <WarningFilled/>
+                        </el-icon>
+                        暂停
+                      </el-dropdown-item>
+                      <el-dropdown-item>
+                        <el-icon>
+                          <HelpFilled/>
+                        </el-icon>
+                        立即触发
+                      </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -167,7 +186,8 @@ import {
   CircleCheckFilled,
   WarningFilled
 } from '@element-plus/icons-vue'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import zhCn from "element-plus/dist/locale/zh-cn.mjs"
+import {apiUrl} from "./tools.js";
 
 // 响应式数据
 const isDarkMode = ref(false) // 默认使用亮色模式，更符合常规用户体验
@@ -175,90 +195,23 @@ const loading = ref(false)
 const tableRef = ref(null)
 
 // 模拟数据
-const scheduleData = [
-  {
-    id: 'job-1',
-    jobStatus: '在线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfRuns: 101,
-    numberOfErrors: 0,
-    maxNumberOfRuns: 0,
-    maxNumberOfErrors: 100,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
-  }, {
-    id: 'job-2',
-    jobStatus: '在线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfRuns: 101,
-    numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
-    maxNumberOfErrors: 0,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
-  }, {
-    id: 'job-3',
-    jobStatus: '在线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfErrors: 0,
-    maxNumberOfRuns: 0,
-    maxNumberOfErrors: 100,
-    numberOfRuns: 2311,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
+const scheduleData = ref([]);
 
-  }, {
-    id: 'job-4',
-    jobStatus: '在线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfRuns: 101,
-    numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
-    maxNumberOfErrors: 100,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
-  }, {
-    id: 'job-5',
-    jobStatus: '在线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfRuns: 101,
-    numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
-    maxNumberOfErrors: 100,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
-  }, {
-    id: 'job-6',
-    jobStatus: '离线',
-    runOnStart: true,
-    startTime: '2025-01-01 00:00:00',
-    lastRunTime: '2023-05-10 14:30:00 「几秒前」',
-    nextRunTime: '2023-05-10 16:30:00 「几秒内」',
-    numberOfErrors: 0,
-    maxNumberOfRuns: 1000,
-    maxNumberOfErrors: 100,
-    numberOfRuns: 101,
-    description: 'Sample Job 1',
-    repeatInterval: "DailyAt(10)",
-  },
-]
+onMounted(() => {
+  showJobs();
+  setInterval(showJobs, 2000)
+});// 计算属性
 
-// 计算属性
+function showJobs() {
+  fetch(apiUrl('/getJobs'), {
+    method: 'post',
+  }).then(res => res.json()).then(res => {
+    scheduleData.value = res.data;
+  }).catch(err => {
+    console.error('fetch解析异常：', err);
+  });
+}
+
 const themeConfig = computed(() => ({
   dark: isDarkMode.value,
   colorPrimary: '#409EFF'
@@ -312,8 +265,8 @@ const handleRowClick = (row, column, event) => {
   }
 }
 
-const getJobStatusTagType = (jobType) => {
-  if (jobType === "在线") return 'primary'
+const getJobOnlineTagType = (jobType) => {
+  if (jobType) return 'primary'
   return 'warning'
 }
 
@@ -484,8 +437,9 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 15px;
-  overflow: hidden;
-  width: 500px;
+  overflow: auto;
+  width: 400px;
+  height: 950px;
   transition: all 0.3s ease;
 }
 
@@ -555,8 +509,8 @@ body {
 
 /* 滚动条 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 1px;
+  height: 1px;
 }
 
 ::-webkit-scrollbar-track {
