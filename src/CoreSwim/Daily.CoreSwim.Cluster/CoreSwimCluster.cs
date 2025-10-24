@@ -20,12 +20,7 @@ namespace Daily.CoreSwim.Cluster
             _distributedTaskCoordinateFactory = new(redisClient, this);
             Config.ActuatorStore = new DistributedActuatorStore(redisClient);
             //预热！
-            //Config.Aop.AddJobAfter += a => _ = _distributedTaskCoordinateFactory.Create(a.JobId);
-            Config.Aop.AddJobAfter += a =>
-            {
-                Console.WriteLine($"{a.JobId},已经预热了");
-                _ = _distributedTaskCoordinateFactory.Create(a.JobId);
-            };
+            Config.Aop.AddJobAfter += a => _ = _distributedTaskCoordinateFactory.Create(a.JobId);
         }
 
         /// <summary>
