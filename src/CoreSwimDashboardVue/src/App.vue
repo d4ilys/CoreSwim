@@ -36,7 +36,7 @@
             <el-table-column type="expand">
               <template #default="{ row }">
                 <div class="expand-card" :class="{ 'dark-mode-card': isDarkMode }">
-                  <el-timeline v-if="row.executionRecords.length > 0"  style="padding: 20px">
+                  <el-timeline v-if="row.executionRecords.length > 0" style="padding: 20px">
                     <el-timeline-item v-for=" (item, index) in row.executionRecords"
                                       :key="index" :timestamp="item.startTime"
                                       type="primary" icon="MoreFilled" placement="top">
@@ -52,6 +52,9 @@
                         <div class="timeline-container-content">触发方式：
                           {{ item.triggerType }}
                         </div>
+                        <div class="timeline-container-content">执行节点：
+                          {{ item.executeNode }}
+                        </div>
                         <div class="timeline-container-content">状态：
                           <el-tooltip
                               v-if="item.exception"
@@ -63,13 +66,13 @@
                           >
                             <el-tag type="success" size="small"> 失败</el-tag>
                           </el-tooltip>
-                          <el-tag type="warning" size="small" v-else >成功</el-tag>
+                          <el-tag type="warning" size="small" v-else>成功</el-tag>
                         </div>
                       </el-space>
                     </el-timeline-item>
 
                   </el-timeline>
-                  <el-empty v-else :image-size="200" />
+                  <el-empty v-else :image-size="200"/>
                 </div>
               </template>
             </el-table-column>
@@ -91,6 +94,7 @@
                 </el-tag>
               </template>
             </el-table-column>
+
             <el-table-column prop="repeatInterval" label="执行周期" width="280" align="center">
               <template #default="{ row }">
                 <el-tag type="success" size="small">
@@ -141,7 +145,7 @@
                     <MoreFilled/>
                   </el-icon>
                   <template #dropdown>
-                    <el-dropdown-menu :class="{ 'dark': isDarkMode }">
+                    <el-dropdown-menu>
                       <el-dropdown-item>
                         <el-icon>
                           <CircleCheckFilled/>
@@ -154,7 +158,7 @@
                         </el-icon>
                         暂停
                       </el-dropdown-item>
-                      <el-dropdown-item>
+                      <el-dropdown-item @click="executeImmediately(row.jobId)">
                         <el-icon>
                           <HelpFilled/>
                         </el-icon>
@@ -270,32 +274,6 @@ const getJobOnlineTagType = (jobType) => {
   return 'warning'
 }
 
-const handleAction = (command) => {
-  // 由于Element Plus的限制，我们需要特殊处理来获取行ID
-  setTimeout(() => {
-    const activeItem = document.querySelector('.el-dropdown-menu__item.is-active') ||
-        document.querySelector('.el-dropdown-menu__item:hover')
-    const rowId = activeItem?.getAttribute('data-row-id')
-
-    if (!rowId) return
-
-    switch (command) {
-      case 'start':
-        console.log('启动任务:', rowId)
-        break
-      case 'pause':
-        console.log('暂停任务:', rowId)
-        break
-      case 'delete':
-        console.log('删除任务:', rowId)
-        break
-      case 'execute':
-        console.log('立即执行任务:', rowId)
-        break
-    }
-  }, 0)
-}
-
 // 组件挂载和初始化
 onMounted(() => {
   // 检查本地存储中的主题偏好
@@ -319,6 +297,25 @@ onMounted(() => {
   // 应用初始主题
   updateDarkModeClass()
 })
+
+function executeImmediately(jobId) {
+  //get请求 参数base64编码
+  const jobIdBase64 = btoa(jobId);
+  fetch(apiUrl(`/executeImmediately?jobId=${jobIdBase64}`)).then(res => res.json()).then(res => {
+    ElMessage({
+      message: '任务触发成功.',
+      type: 'success',
+      plain: true,
+    })
+  }).catch(err => {
+    ElMessage({
+      message: '任务触发失败.',
+      type: 'error',
+      plain: true,
+    })
+
+  });
+}
 
 // 提供给子组件
 provide('isDarkMode', isDarkMode)
@@ -436,10 +433,10 @@ body {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 15px;
+  margin: 10px;
   overflow: auto;
   width: 400px;
-  height: 950px;
+  height: 910px;
   transition: all 0.3s ease;
 }
 

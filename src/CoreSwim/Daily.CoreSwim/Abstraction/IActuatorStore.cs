@@ -10,7 +10,9 @@ namespace Daily.CoreSwim.Abstraction
 {
     public interface IActuatorStore
     {
-        Task SaveJobsAsync(string jobId, Actuator actuator);
+        Task SaveJobAsync(string jobId, Actuator actuator);
+
+        Task UpdateJobAsync(string jobId, Actuator actuator);
 
         Task<Actuator?> GetJobAsync(string jobId);
 

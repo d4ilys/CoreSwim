@@ -5,13 +5,23 @@ VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim", "Daily.CoreSwim\Daily.CoreSwim.csproj", "{B9D94081-5D81-4DD3-967E-5460647E9D5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Dashboard", "Daily.CoreSwim.Dashboard\Daily.CoreSwim.Dashboard.csproj", "{378AF58C-427F-4532-9C5A-DD12AF7C36A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Dashboard", "Dashboards\Daily.CoreSwim.Dashboard\Daily.CoreSwim.Dashboard.csproj", "{378AF58C-427F-4532-9C5A-DD12AF7C36A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppTest", "ConsoleAppTest\ConsoleAppTest.csproj", "{5EDAD5F1-D5DD-4F00-8537-1F347EA7B191}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppSimple", "Simples\ConsoleAppSimple\ConsoleAppSimple.csproj", "{5EDAD5F1-D5DD-4F00-8537-1F347EA7B191}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Simple", "WebApplication.Simple\Web.Simple.csproj", "{7F72737C-5431-428C-A63C-60D4D338D6AA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplicationSimple", "Simples\WebApplicationSimple\WebApplicationSimple.csproj", "{7F72737C-5431-428C-A63C-60D4D338D6AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Distributed", "Daily.CoreSwim.Distributed\Daily.CoreSwim.Distributed.csproj", "{6DB31DEB-4F17-4ACE-97D2-167BF18FEAE4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Cluster", "Daily.CoreSwim.Cluster\Daily.CoreSwim.Cluster.csproj", "{6DB31DEB-4F17-4ACE-97D2-167BF18FEAE4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simples", "Simples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dashboards", "Dashboards", "{D6C012C2-A04A-42D2-88C0-B497EDB4484D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Dashboard.MySql", "Dashboards\Daily.CoreSwim.Dashboard.MySql\Daily.CoreSwim.Dashboard.MySql.csproj", "{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daily.CoreSwim.Dashboard.Cluster", "Dashboards\Daily.CoreSwim.Dashboard.Cluster\Daily.CoreSwim.Dashboard.Cluster.csproj", "{CBCFC240-5C13-47B3-94CB-1C97A5241997}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplicationClusterSimple", "Simples\WebApplicationClusterSimple\WebApplicationClusterSimple.csproj", "{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,9 +49,29 @@ Global
 		{6DB31DEB-4F17-4ACE-97D2-167BF18FEAE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DB31DEB-4F17-4ACE-97D2-167BF18FEAE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6DB31DEB-4F17-4ACE-97D2-167BF18FEAE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBCFC240-5C13-47B3-94CB-1C97A5241997}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBCFC240-5C13-47B3-94CB-1C97A5241997}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBCFC240-5C13-47B3-94CB-1C97A5241997}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBCFC240-5C13-47B3-94CB-1C97A5241997}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{378AF58C-427F-4532-9C5A-DD12AF7C36A4} = {D6C012C2-A04A-42D2-88C0-B497EDB4484D}
+		{5EDAD5F1-D5DD-4F00-8537-1F347EA7B191} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{7F72737C-5431-428C-A63C-60D4D338D6AA} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{0D9D10EB-9039-47AC-9A95-BA9DD4DCFEBC} = {D6C012C2-A04A-42D2-88C0-B497EDB4484D}
+		{CBCFC240-5C13-47B3-94CB-1C97A5241997} = {D6C012C2-A04A-42D2-88C0-B497EDB4484D}
+		{8AAC6B17-E00D-4EBE-BF33-B9835E6C1887} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {46220380-85FA-47D9-929D-00C99F743BAE}

@@ -12,9 +12,14 @@ namespace Daily.CoreSwim.Actuators
     {
         private readonly ConcurrentDictionary<string, Actuator> _jobs = new();
 
-        public Task SaveJobsAsync(string jobId, Actuator actuator)
+        public Task SaveJobAsync(string jobId, Actuator actuator)
         {
             _jobs.TryAdd(jobId, actuator);
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateJobAsync(string jobId, Actuator actuator)
+        {
             return Task.CompletedTask;
         }
 
