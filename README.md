@@ -80,7 +80,7 @@ app.UseCoreSwimDashboard(options => options.DashboardPath = "CoreSwim");
 app.Run();
 ~~~
 
-![Simple](.\images\Simple.png)
+![Simple](./images/Simple.png)
 
 ### 集群模式
 
@@ -141,4 +141,4 @@ app.UseCoreSwimDashboard(options => options.DashboardPath = "CoreSwim");
 app.Run();
 ~~~
 
-![Cluster](.\images\Cluster.png)
+![Cluster](./images/Cluster.png)
