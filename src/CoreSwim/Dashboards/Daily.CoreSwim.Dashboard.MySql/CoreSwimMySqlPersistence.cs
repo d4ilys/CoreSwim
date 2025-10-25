@@ -91,7 +91,9 @@ namespace Daily.CoreSwim.Dashboard.MySql
 
             //更新Job表
             await db.Update<ActuatorDescriptionTable>()
-                .Set(x => x.LastRunTime, record.StartTime.Date)
+                .Set(x => x.LastRunTime,
+                    new DateTime(record.StartTime.Year, record.StartTime.Month, record.StartTime.Day,
+                        record.StartTime.Hour, record.StartTime.Minute, record.StartTime.Second))
                 .Set(x => x.NextRunTime, record.NextRunTime)
                 .Set(x => x.NumberOfRuns, record.NumberOfRuns)
                 .Where(a => a.JobId == record.JobId)

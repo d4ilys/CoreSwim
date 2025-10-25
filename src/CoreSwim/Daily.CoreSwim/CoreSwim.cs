@@ -23,7 +23,7 @@ namespace Daily.CoreSwim
         }
 
         /// <summary>
-        /// 添加作业
+        /// 添加任务
         /// </summary>
         /// <typeparam name="TJob"><see cref="IJob"/> 实现类型</typeparam>
         /// <returns><see cref="CoreSwim"/></returns>
@@ -58,7 +58,7 @@ namespace Daily.CoreSwim
         }
 
         /// <summary>
-        /// 执行作业
+        /// 开始所有任务
         /// </summary>
         /// <param name="stoppingToken"></param>
         /// <returns></returns>
@@ -91,7 +91,7 @@ namespace Daily.CoreSwim
         }
 
         /// <summary>
-        /// 删除作业
+        /// 删除任务
         /// </summary>
         /// <param name="jobId"></param>
         /// <returns></returns>
@@ -110,6 +110,12 @@ namespace Daily.CoreSwim
             return Task.FromResult(true);
         }
 
+        /// <summary>
+        /// 主动触发任务
+        /// </summary>
+        /// <param name="jobId"></param>
+        /// <param name="stoppingToken"></param>
+        /// <returns></returns>
         public async Task ExecuteJobAsync(string jobId, CancellationToken stoppingToken)
         {
             var actuator = await Config.ActuatorStore.GetJobAsync(jobId);
@@ -238,10 +244,16 @@ namespace Daily.CoreSwim
             }
 
             // 等待下一个触发时间
-            return await SleepAsync(startAt, stoppingToken);
+            return await DaleyAsync(startAt, stoppingToken);
         }
 
-        protected async Task<bool> SleepAsync(DateTime startAt, CancellationToken stoppingToken)
+        /// <summary>
+        /// 调度线程休眠
+        /// </summary>
+        /// <param name="startAt"></param>
+        /// <param name="stoppingToken"></param>
+        /// <returns></returns>
+        protected async Task<bool> DaleyAsync(DateTime startAt, CancellationToken stoppingToken)
         {
             var allJob = await Config.ActuatorStore.GetAllJobAsync();
 
@@ -269,7 +281,7 @@ namespace Daily.CoreSwim
         }
 
         /// <summary>
-        /// 初始化作业下次运行时间
+        /// 初始化任务
         /// </summary>
         /// <param name="stoppingToken"></param>
         protected async Task InitializeJobsNextRunTimeAsync(CancellationToken stoppingToken)
@@ -292,7 +304,7 @@ namespace Daily.CoreSwim
         }
 
         /// <summary>
-        /// 创建作业实例
+        /// 创建任务实例
         /// </summary>
         /// <param name="actuator"></param>
         /// <param name="stoppingToken"></param>

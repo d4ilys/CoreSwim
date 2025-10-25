@@ -12,7 +12,7 @@ public interface ICoreSwim
     public CoreSwimConfig Config { get; internal set; }
 
     /// <summary>
-    /// 添加作业
+    /// 添加任务
     /// </summary>
     /// <typeparam name="TJob"><see cref="IJob"/> 实现类型</typeparam>
     /// <returns><see cref="CoreSwim"/></returns>
@@ -31,7 +31,7 @@ public interface ICoreSwim
     public Task StartAsync(CancellationToken stoppingToken);
 
     /// <summary>
-    /// 删除作业
+    /// 删除任务
     /// </summary>
     /// <param name="jobId"></param>
     /// <returns></returns>

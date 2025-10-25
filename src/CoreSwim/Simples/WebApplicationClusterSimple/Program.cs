@@ -28,9 +28,9 @@ builder.Services.AddCoreSwimCluster(provider => provider.GetRequiredService<Redi
     swim.AddJob<MyJob04>("MyJob04", CoreSwimActuator.DateTime(DateTime.Parse("2025-10-24 14:59:00"))
         .SetDescription("2025-10-24 14:50:00 执行"));
     swim.AddJob<MyJob05>("MyJob05",
-        CoreSwimActuator.Period(5000 * 60).SetRunOnStart(true).SetDescription("5000 * 60毫秒执行一次"));
+        CoreSwimActuator.Period(5000 * 60).SetDescription("5000 * 60毫秒执行一次"));
     swim.AddJob<MyJob06>("MyJob06",
-        CoreSwimActuator.Period(3000 * 60).SetRunOnStart(true).SetDescription("3000 * 60毫秒执行一次"));
+        CoreSwimActuator.Period(3000 * 60).SetDescription("3000 * 60毫秒执行一次"));
 });
 
 builder.Services.AddCoreSwimDashboard().UseMySql(options =>

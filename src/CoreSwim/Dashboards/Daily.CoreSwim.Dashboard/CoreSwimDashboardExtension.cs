@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Daily.CoreSwim.Abstraction;
 using Microsoft.AspNetCore.Builder;
@@ -31,7 +32,7 @@ namespace Daily.CoreSwim.Dashboard
                         JobId = description.JobId,
                         JobOnline = description.JobOnline,
                         Description = description.Description,
-                        RunOnStart = description.RunOnStart,
+                        RunOnStart = description.RunOnStart, 
                         StartTime = description.StartTime,
                         LastRunTime = description.LastRunTime,
                         NextRunTime = description.NextRunTime,
@@ -46,7 +47,17 @@ namespace Daily.CoreSwim.Dashboard
                 }
 
                 var json = new { data = resultData, total };
-                await context.Response.WriteAsJsonAsync(json);
+
+                var jsonText = JsonSerializer.Serialize(json, new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase, 
+                    Converters = { new DateTimeConverter() }
+                });
+        
+                context.Response.ContentType = "application/json;charset=UTF-8";
+                context.Response.StatusCode = 200;
+                await context.Response.WriteAsync(jsonText);
             });
 
             app.MapGet($"{optionsInternal.DashboardPath}/executeImmediately", async context =>

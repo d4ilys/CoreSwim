@@ -20,6 +20,7 @@ namespace Daily.CoreSwim.Actuators
 
         public Task UpdateJobAsync(string jobId, Actuator actuator)
         {
+            actuator.NumberOfRuns++;
             return Task.CompletedTask;
         }
 

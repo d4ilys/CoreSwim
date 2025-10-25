@@ -6,7 +6,7 @@ namespace Daily.CoreSwim.Actuators
     public class Actuator : ActuatorDescription
     {
         /// <summary>
-        /// 执行作业的Type
+        /// 执行任务的Type
         /// </summary>
         [JsonIgnore]
         public Type JobType { get; set; }

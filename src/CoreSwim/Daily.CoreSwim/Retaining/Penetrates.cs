@@ -24,5 +24,18 @@ namespace Daily.CoreSwim.Retaining
                 , dateTime.Minute
                 , dateTime.Second);
         }
+
+       internal static string GetPeriod(long interval)
+       {
+          //根据interval获取时时间间隔，适配 毫秒 秒 分钟 小时
+          return interval switch
+          {
+              < 1000 => $"{interval}ms",
+              < 60000 => $"{interval / 1000}s",
+              < 3600000 => $"{interval / 60000}m",
+              < 86400000 => $"{interval / 3600000}h",
+              _ => $"{interval / 86400000}d"
+          };
+       }
     }
 }

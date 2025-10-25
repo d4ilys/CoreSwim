@@ -15,7 +15,7 @@ namespace Daily.CoreSwim.Dashboard.MySql
         public long Id { get; set; }
 
         /// <summary>
-        /// 作业ID
+        /// 任务ID
         /// </summary>
         [Column(Name = "job_id")]
         public string JobId { get; set; }

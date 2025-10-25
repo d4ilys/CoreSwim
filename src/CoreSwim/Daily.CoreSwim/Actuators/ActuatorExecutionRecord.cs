@@ -9,7 +9,7 @@ namespace Daily.CoreSwim.Actuators
     public class ActuatorExecutionRecord
     {
         /// <summary>
-        /// 作业ID
+        /// 任务ID
         /// </summary>
         public string JobId { get; set; }
 

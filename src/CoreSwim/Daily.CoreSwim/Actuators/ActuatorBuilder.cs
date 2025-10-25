@@ -10,7 +10,7 @@ public class ActuatorBuilder
     public ActuatorBuilder Period(long interval)
     {
         _actuator = new PeriodActuator(interval);
-        _actuator.RepeatInterval = $"Period<{interval}ms>";
+        _actuator.RepeatInterval = $"Period<{Penetrates.GetPeriod(interval)}>";
         return this;
     }
 
