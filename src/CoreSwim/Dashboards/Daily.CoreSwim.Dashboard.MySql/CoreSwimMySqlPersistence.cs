@@ -12,7 +12,6 @@ namespace Daily.CoreSwim.Dashboard.MySql
             if (actuator != null)
             {
                 await db.Update<ActuatorDescriptionTable>()
-                    .SetIf(actuatorParams.JobOnline != actuator.JobOnline, a => a.JobOnline, actuatorParams.JobOnline)
                     .SetIf(actuatorParams.Description != actuator.Description, a => a.Description,
                         actuatorParams.Description)
                     .SetIf(actuatorParams.RunOnStart != actuator.RunOnStart, a => a.RunOnStart,
@@ -31,7 +30,7 @@ namespace Daily.CoreSwim.Dashboard.MySql
                 await db.Insert(new ActuatorDescriptionTable
                 {
                     JobId = actuatorParams.JobId,
-                    JobOnline = actuatorParams.JobOnline,
+                    JobStatus = actuatorParams.JobStatus,
                     Description = actuatorParams.Description,
                     RunOnStart = actuatorParams.RunOnStart,
                     StartTime = actuatorParams.StartTime,
@@ -56,7 +55,7 @@ namespace Daily.CoreSwim.Dashboard.MySql
                 .ToListAsync(t => new ActuatorDescription
                 {
                     JobId = t.JobId,
-                    JobOnline = t.JobOnline,
+                    JobStatus = t.JobStatus,
                     Description = t.Description,
                     RunOnStart = t.RunOnStart,
                     StartTime = t.StartTime,
@@ -132,6 +131,14 @@ namespace Daily.CoreSwim.Dashboard.MySql
                     }
                 );
             return (query, 0);
+        }
+
+        public override void UpdateJobStatus(string jobId, ActuatorStatus status)
+        {
+            db.Update<ActuatorDescriptionTable>()
+                .Set(x => x.JobStatus, status)
+                .Where(a => a.JobId == jobId)
+                .ExecuteAffrows();
         }
     }
 }

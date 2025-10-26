@@ -4,11 +4,26 @@
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<Authors>Daily</Authors>
+		<Version>0.0.0.2</Version>
+		<Description>支持分布式的 定时调度作业平台</Description>
+		<IsPackable>true</IsPackable>
+		<RepositoryUrl>https://github.com/d4ilys/CoreSwim</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageIcon>logo.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Daily.CoreSwim.Cluster\Daily.CoreSwim.Cluster.csproj" />
 		<ProjectReference Include="..\Daily.CoreSwim.Dashboard.MySql\Daily.CoreSwim.Dashboard.MySql.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 	</ItemGroup>
 
 </Project>

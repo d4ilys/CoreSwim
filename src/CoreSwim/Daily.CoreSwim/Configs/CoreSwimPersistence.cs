@@ -34,6 +34,11 @@ namespace Daily.CoreSwim.Configs
             CoreSwim.RemoveJob(jobId);
         }
 
+        public virtual void UpdateJobStatus(string jobId, ActuatorStatus status)
+        {
+            _actuatorDescriptions.First(a => a.JobId == jobId).JobStatus = status;
+        }
+
 
         /// <summary>
         /// 获取任务

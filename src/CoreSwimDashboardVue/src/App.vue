@@ -29,15 +29,20 @@
       <!-- 主要内容区域 -->
       <main class="dashboard-main">
         <div class="table-container">
-          <el-table v-loading="loading" :data="scheduleData" style="width: 100%" row-key="jobId" :border="false"
-                    :header-cell-style="headerCellStyle" :cell-style="cellStyle" :row-style="rowStyle"
+          <el-table v-loading="loading" :data="scheduleData" style="width: 100%"
+                    row-key="jobId"
+                    :border="false"
+                    :header-cell-style="headerCellStyle"
+                    :cell-style="cellStyle"
+                    @expand-change="expandChange"
+                    :row-style="rowStyle"
                     @row-click="handleRowClick" ref="tableRef">
             <!-- 展开行 -->
             <el-table-column type="expand">
               <template #default="{ row }">
                 <div class="expand-card" :class="{ 'dark-mode-card': isDarkMode }">
-                  <el-timeline v-if="row.executionRecords.length > 0" style="padding: 20px">
-                    <el-timeline-item v-for=" (item, index) in row.executionRecords"
+                  <el-timeline v-if="records[row.jobId].length > 0" style="padding: 20px">
+                    <el-timeline-item v-for=" (item, index) in records[row.jobId]"
                                       :key="index" :timestamp="item.startTime"
                                       type="primary" icon="MoreFilled" placement="top">
                       <el-space direction="vertical" alignment="normal">
@@ -60,8 +65,8 @@
                               v-if="item.exception"
                               :content="item.exception"
                               :popperStyle="{
-                                maxWidth: '500px',
-                              }"
+                                                  maxWidth: '500px',
+                                                }"
                               placement="top-start"
                           >
                             <el-tag type="success" size="small"> 失败</el-tag>
@@ -76,16 +81,17 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="jobId" label="ID" width="250" fixed="left" align="center">
+            <el-table-column prop="jobId" label="ID" width="250" fixed="left" align="center"
+                             :show-overflow-tooltip="true">
             </el-table-column>
-            <el-table-column prop="jobOnline" label="状态" width="100" align="center">
+            <el-table-column prop="jobOnline" label="状态" width="120" align="center">
               <template #default="{ row }">
-                <el-tag :type="getJobOnlineTagType(row.jobOnline)" size="small">
-                  {{ row.jobOnline ? "在线" : "离线" }}
+                <el-tag :type="getJobStatusTagType(row.jobStatusText)" size="small">
+                  {{ row.jobStatusText }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" width="250" align="center">
+            <el-table-column prop="description" label="描述" width="250" align="center" :show-overflow-tooltip="true">
             </el-table-column>
             <el-table-column prop="numberOfRuns" label="执行次数" width="130" align="center">
               <template #default="{ row }">
@@ -146,13 +152,13 @@
                   </el-icon>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item>
+                      <el-dropdown-item @click="pulseOnJob(row.jobId)">
                         <el-icon>
                           <CircleCheckFilled/>
                         </el-icon>
                         启动
                       </el-dropdown-item>
-                      <el-dropdown-item>
+                      <el-dropdown-item @click="pauseJob(row.jobId)">
                         <el-icon>
                           <WarningFilled/>
                         </el-icon>
@@ -179,7 +185,7 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, provide} from 'vue'
+import {ref, computed, onMounted, provide, reactive} from 'vue'
 import {
   Timer,
   Sunny,
@@ -197,7 +203,7 @@ import {apiUrl} from "./tools.js";
 const isDarkMode = ref(false) // 默认使用亮色模式，更符合常规用户体验
 const loading = ref(false)
 const tableRef = ref(null)
-
+const records = reactive({})
 // 模拟数据
 const scheduleData = ref([]);
 
@@ -269,8 +275,15 @@ const handleRowClick = (row, column, event) => {
   }
 }
 
-const getJobOnlineTagType = (jobType) => {
-  if (jobType) return 'primary'
+const getJobStatusTagType = (status) => {
+  switch (status) {
+    case "Ready":
+      return 'success'
+    case "Pause":
+      return 'info'
+    case "Offline":
+      return 'danger'
+  }
   return 'warning'
 }
 
@@ -302,11 +315,20 @@ function executeImmediately(jobId) {
   //get请求 参数base64编码
   const jobIdBase64 = btoa(jobId);
   fetch(apiUrl(`/executeImmediately?jobId=${jobIdBase64}`)).then(res => res.json()).then(res => {
-    ElMessage({
-      message: '任务触发成功.',
-      type: 'success',
-      plain: true,
-    })
+    if (res.success) {
+      ElMessage({
+        message: res.message,
+        type: 'success',
+        plain: true,
+      })
+    } else {
+      ElMessage({
+        message: res.message,
+        type: 'error',
+        plain: true,
+      })
+    }
+
   }).catch(err => {
     ElMessage({
       message: '任务触发失败.',
@@ -315,6 +337,89 @@ function executeImmediately(jobId) {
     })
 
   });
+}
+
+function pulseOnJob(jobId) {
+  //get请求 参数base64编码
+  const jobIdBase64 = btoa(jobId);
+  fetch(apiUrl(`/pulseOnJob?jobId=${jobIdBase64}`)).then(res => res.json()).then(res => {
+    if (res.success) {
+      ElMessage({
+        message: '任务已经启动.',
+        type: 'success',
+        plain: true,
+      })
+    } else {
+      ElMessage({
+        message: '任务启动失败.',
+        type: 'error',
+        plain: true,
+      })
+    }
+  }).catch(err => {
+    ElMessage({
+      message: '任务启动失败.',
+      type: 'error',
+      plain: true,
+    })
+
+  });
+}
+
+function pauseJob(jobId) {
+  //get请求 参数base64编码
+  const jobIdBase64 = btoa(jobId);
+  fetch(apiUrl(`/pauseJob?jobId=${jobIdBase64}`)).then(res => res.json()).then(res => {
+    if (res.success) {
+      ElMessage({
+        message: '任务暂停成功.',
+        type: 'success',
+        plain: true,
+      })
+    } else {
+      ElMessage({
+        message: '任务暂停失败.',
+        type: 'error',
+        plain: true,
+      })
+    }
+
+  }).catch(err => {
+    ElMessage({
+      message: '任务暂停失败.',
+      type: 'error',
+      plain: true,
+    })
+
+  });
+}
+
+function showJobExecuteRecords(jobId) {
+  const jobIdBase64 = btoa(jobId);
+  fetch(apiUrl(`/getJobExecuteRecord?jobId=${jobIdBase64}`), {
+    method: 'get',
+  }).then(res => res.json()).then(res => {
+    records[jobId] = res.data;
+  }).catch(err => {
+    console.error('fetch解析异常：', err);
+  });
+}
+
+const allRecordSetIntervals = new Map()
+
+function expandChange(row, expanded) {
+  const jobId = row.jobId;
+  if (expanded.some(r => r.jobId === jobId)) {
+    if (!allRecordSetIntervals.has(jobId)) {
+      showJobExecuteRecords(jobId);
+      allRecordSetIntervals.set(jobId, setInterval(() => {
+        showJobExecuteRecords(jobId)
+      }, 2000))
+    }
+  } else {
+    clearInterval(allRecordSetIntervals.get(jobId))
+    allRecordSetIntervals.delete(jobId)
+  }
 }
 
 // 提供给子组件

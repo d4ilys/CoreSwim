@@ -39,6 +39,9 @@ namespace Daily.CoreSwim.Dashboard.MySql
 
             coreSwim.AddJob<CleanUpExpiredDataJob>("SystemCleanUpExpiredData",
                 CoreSwimActuator.Daily().SetDescription("清理过期数据 <系统内置> "));
+
+            coreSwim.AddJob<SyncOnlineStatus>("SyncOnlineStatus",
+                CoreSwimActuator.PeriodMinutes(20).SetDescription("同步在线状态 <系统内置> "));
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

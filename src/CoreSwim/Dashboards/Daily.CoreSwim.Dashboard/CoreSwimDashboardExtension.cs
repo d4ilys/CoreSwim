@@ -2,6 +2,7 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Daily.CoreSwim.Abstraction;
+using Daily.CoreSwim.Actuators;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,14 +26,12 @@ namespace Daily.CoreSwim.Dashboard
                 var resultData = new List<ActuatorDescriptionResponseBody>();
                 foreach (var description in data)
                 {
-                    var (records, recordsTotal) =
-                        await coreSwim.Config.Persistence.GetJobsExecutionRecordsAsync(description.JobId, 0, 10);
                     var body = new ActuatorDescriptionResponseBody
                     {
                         JobId = description.JobId,
-                        JobOnline = description.JobOnline,
+                        JobStatus = description.JobStatus,
                         Description = description.Description,
-                        RunOnStart = description.RunOnStart, 
+                        RunOnStart = description.RunOnStart,
                         StartTime = description.StartTime,
                         LastRunTime = description.LastRunTime,
                         NextRunTime = description.NextRunTime,
@@ -41,8 +40,9 @@ namespace Daily.CoreSwim.Dashboard
                         NumberOfErrors = description.NumberOfErrors,
                         RepeatInterval = description.RepeatInterval,
                         MaxNumberOfErrors = description.MaxNumberOfErrors,
-                        ExecutionRecords = records
                     };
+                    var iobStatusText = Enum.GetName(description.JobStatus);
+                    body.JobStatusText = iobStatusText;
                     resultData.Add(body);
                 }
 
@@ -51,13 +51,65 @@ namespace Daily.CoreSwim.Dashboard
                 var jsonText = JsonSerializer.Serialize(json, new JsonSerializerOptions
                 {
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase, 
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     Converters = { new DateTimeConverter() }
                 });
-        
+
                 context.Response.ContentType = "application/json;charset=UTF-8";
                 context.Response.StatusCode = 200;
                 await context.Response.WriteAsync(jsonText);
+            });
+
+            app.MapGet($"{optionsInternal.DashboardPath}/getJobExecuteRecord", async context =>
+            {
+                var stringValues = context.Request.Query["jobId"];
+                //base64解码
+                var jobId = stringValues.FirstOrDefault();
+                jobId = Encoding.UTF8.GetString(Convert.FromBase64String(jobId!));
+                var coreSwim = context.RequestServices.GetRequiredService<ICoreSwim>();
+                var (records, recordsTotal) =
+                    await coreSwim.Config.Persistence.GetJobsExecutionRecordsAsync(jobId, 0, 10);
+
+                var json = new { data = records, total = recordsTotal };
+
+                var jsonText = JsonSerializer.Serialize(json, new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new DateTimeConverter() }
+                });
+
+                context.Response.ContentType = "application/json;charset=UTF-8";
+                context.Response.StatusCode = 200;
+                await context.Response.WriteAsync(jsonText);
+            });
+
+            app.MapGet($"{optionsInternal.DashboardPath}/pulseOnJob", async context =>
+            {
+                var stringValues = context.Request.Query["jobId"];
+                //base64解码
+                var jobId = stringValues.FirstOrDefault();
+                jobId = Encoding.UTF8.GetString(Convert.FromBase64String(jobId!));
+                var coreSwim = context.RequestServices.GetRequiredService<ICoreSwim>();
+                var pulseOnJob = coreSwim.PulseOnJob(jobId);
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    success = pulseOnJob
+                });
+            });
+
+            app.MapGet($"{optionsInternal.DashboardPath}/pauseJob", async context =>
+            {
+                var stringValues = context.Request.Query["jobId"];
+                //base64解码
+                var jobId = stringValues.FirstOrDefault();
+                jobId = Encoding.UTF8.GetString(Convert.FromBase64String(jobId!));
+                var coreSwim = context.RequestServices.GetRequiredService<ICoreSwim>();
+                var pulseOnJob = coreSwim.PauseJob(jobId);
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    success = pulseOnJob
+                });
             });
 
             app.MapGet($"{optionsInternal.DashboardPath}/executeImmediately", async context =>
@@ -69,10 +121,17 @@ namespace Daily.CoreSwim.Dashboard
                 {
                     var coreSwim = context.RequestServices.GetRequiredService<ICoreSwim>();
                     jobId = Encoding.UTF8.GetString(Convert.FromBase64String(jobId));
+                    var actuator = await coreSwim.Config.ActuatorStore.GetJobAsync(jobId);
+                    if (actuator!.JobStatus != ActuatorStatus.Ready)
+                    {
+                        await context.Response.WriteAsJsonAsync(new { success = false, message = "任务触发失败 该任务状态异常" });
+                        return;
+                    }
+
                     await coreSwim.ExecuteJobAsync(jobId, CancellationToken.None);
                 }
 
-                await context.Response.WriteAsJsonAsync(new { success = true });
+                await context.Response.WriteAsJsonAsync(new { success = true, message = "任务触发成功" });
             });
 
             app.UseMiddleware<CoreSwimDashboardMiddleware>(optionsInternal);

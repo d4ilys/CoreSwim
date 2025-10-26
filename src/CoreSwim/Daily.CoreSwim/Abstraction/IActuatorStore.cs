@@ -15,10 +15,15 @@ namespace Daily.CoreSwim.Abstraction
         Task UpdateJobAsync(string jobId, Actuator actuator);
 
         Task<Actuator?> GetJobAsync(string jobId);
+        Actuator? GetJob(string jobId);
 
         Task<ConcurrentDictionary<string, Actuator>> GetAllJobAsync();
 
+        Task<ConcurrentDictionary<string, Actuator>> GetLocalAllJobAsync();
+
         bool RemoveJob(string jobId);
+
+        bool UpdateStatus(string jobId, ActuatorStatus status);
 
         void ClearAllJobs();
     }

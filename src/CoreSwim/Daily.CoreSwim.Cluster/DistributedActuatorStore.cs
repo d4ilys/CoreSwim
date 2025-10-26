@@ -9,29 +9,34 @@ namespace Daily.CoreSwim.Cluster
 {
     internal class DistributedActuatorStore(RedisClient client) : IActuatorStore
     {
-        private readonly ConcurrentDictionary<string, Actuator> _jobs = new();
+        private readonly ConcurrentDictionary<string, Actuator> _localJobs = new();
         private readonly string _jobsHashKey = $"daily_coreSwim_jobs_{Assembly.GetEntryAssembly()!.GetName().Name}";
 
         public async Task SaveJobAsync(string jobId, Actuator actuator)
         {
             //获取运行的程序集的名称
-            _jobs.TryAdd(jobId, actuator);
-            var hash = new DistributedActuatorStoreRedisHash
+            _localJobs.TryAdd(jobId, actuator);
+            if (!await client.HExistsAsync(_jobsHashKey, jobId))
             {
-                NumberOfRuns = actuator.NumberOfRuns,
-                NumberOfErrors = actuator.NumberOfErrors,
-            };
-            await client.HSetAsync(_jobsHashKey, jobId, JsonSerializer.Serialize(hash));
+                var hash = new DistributedActuatorStoreRedisHash
+                {
+                    NumberOfRuns = actuator.NumberOfRuns,
+                    NumberOfErrors = actuator.NumberOfErrors,
+                    Status = actuator.JobStatus
+                };
+                await client.HSetAsync(_jobsHashKey, jobId, JsonSerializer.Serialize(hash));
+            }
         }
 
         public async Task UpdateJobAsync(string jobId, Actuator actuator)
         {
             //获取运行的程序集的名称
-            _jobs[jobId] = actuator;
+            _localJobs[jobId] = actuator;
             var hash = new DistributedActuatorStoreRedisHash
             {
                 NumberOfRuns = actuator.NumberOfRuns,
                 NumberOfErrors = actuator.NumberOfErrors,
+                Status = actuator.JobStatus
             };
             await client.HSetAsync(_jobsHashKey, jobId, JsonSerializer.Serialize(hash));
         }
@@ -39,11 +44,36 @@ namespace Daily.CoreSwim.Cluster
         public async Task<Actuator?> GetJobAsync(string jobId)
         {
             var jobJsonString = await client.HGetAsync(_jobsHashKey, jobId);
+            if (jobJsonString == null)
+            {
+                return null;
+            }
+
             var jobDesc = JsonSerializer.Deserialize<DistributedActuatorStoreRedisHash>(jobJsonString);
-            var valueOrDefault = _jobs.GetValueOrDefault(jobId);
+            var valueOrDefault = _localJobs.GetValueOrDefault(jobId);
             if (valueOrDefault != null && jobDesc != null) ;
             {
                 valueOrDefault!.NumberOfRuns = jobDesc!.NumberOfRuns;
+                valueOrDefault.JobStatus = jobDesc.Status;
+                valueOrDefault.NumberOfErrors = jobDesc.NumberOfErrors;
+            }
+            return valueOrDefault;
+        }
+
+        public Actuator? GetJob(string jobId)
+        {
+            var jobJsonString = client.HGet(_jobsHashKey, jobId);
+            if (jobJsonString == null)
+            {
+                return null;
+            }
+
+            var jobDesc = JsonSerializer.Deserialize<DistributedActuatorStoreRedisHash>(jobJsonString);
+            var valueOrDefault = _localJobs.GetValueOrDefault(jobId);
+            if (valueOrDefault != null && jobDesc != null) ;
+            {
+                valueOrDefault!.NumberOfRuns = jobDesc!.NumberOfRuns;
+                valueOrDefault.JobStatus = jobDesc.Status;
                 valueOrDefault.NumberOfErrors = jobDesc.NumberOfErrors;
             }
             return valueOrDefault;
@@ -57,16 +87,23 @@ namespace Daily.CoreSwim.Cluster
 
             foreach (var pair in ids)
             {
-                if (_jobs.TryGetValue(pair.Key, out var actuator))
+                if (_localJobs.TryGetValue(pair.Key, out var actuator))
                 {
-                    var distributedActuatorStoreRedisHash = JsonSerializer.Deserialize<DistributedActuatorStoreRedisHash>(pair.Value);
-                    actuator.NumberOfRuns =  distributedActuatorStoreRedisHash!.NumberOfRuns;
+                    var distributedActuatorStoreRedisHash =
+                        JsonSerializer.Deserialize<DistributedActuatorStoreRedisHash>(pair.Value);
+                    actuator.NumberOfRuns = distributedActuatorStoreRedisHash!.NumberOfRuns;
                     actuator.NumberOfErrors = distributedActuatorStoreRedisHash.NumberOfErrors;
+                    actuator.JobStatus = distributedActuatorStoreRedisHash.Status;
                     jobs.TryAdd(pair.Key, actuator);
                 }
             }
 
             return jobs;
+        }
+
+        public Task<ConcurrentDictionary<string, Actuator>> GetLocalAllJobAsync()
+        {
+            return Task.FromResult(_localJobs);
         }
 
         public bool RemoveJob(string jobId)
@@ -75,9 +112,20 @@ namespace Daily.CoreSwim.Cluster
             return hDel > 0;
         }
 
+        public bool UpdateStatus(string jobId, ActuatorStatus status)
+        {
+            var jobJsonString = client.HGet(_jobsHashKey, jobId);
+            if (jobJsonString == null) return false;
+            var jobDesc = JsonSerializer.Deserialize<DistributedActuatorStoreRedisHash>(jobJsonString);
+            if (jobDesc == null) return false;
+            jobDesc.Status = status;
+            client.HSet(_jobsHashKey, jobId, JsonSerializer.Serialize(jobDesc));
+            return true;
+        }
+
         public void ClearAllJobs()
         {
-            _jobs.Clear();
+            _localJobs.Clear();
             client.HDel(_jobsHashKey);
         }
     }
@@ -86,5 +134,7 @@ namespace Daily.CoreSwim.Cluster
     {
         public long NumberOfRuns { get; set; }
         public long NumberOfErrors { get; set; }
+
+        public ActuatorStatus Status { get; set; }
     }
 }

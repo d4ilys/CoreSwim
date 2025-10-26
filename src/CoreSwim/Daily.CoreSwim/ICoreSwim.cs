@@ -37,6 +37,20 @@ public interface ICoreSwim
     /// <returns></returns>
     public bool RemoveJob(string jobId);
 
+    /// <summary>
+    /// 运行任务
+    /// </summary>
+    /// <param name="jobId"></param>
+    /// <returns></returns>
+    public bool PulseOnJob(string jobId);
+
+    /// <summary>
+    /// 暂停任务
+    /// </summary>
+    /// <param name="jobId"></param>
+    /// <returns></returns>
+    public bool PauseJob(string jobId);
+
     public void StopAsync();
 
     public Task ExecuteJobAsync(string jobId, CancellationToken stoppingToken);

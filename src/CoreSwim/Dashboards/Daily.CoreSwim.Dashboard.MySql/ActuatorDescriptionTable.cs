@@ -1,4 +1,5 @@
-﻿using FreeSql.DataAnnotations;
+﻿using Daily.CoreSwim.Actuators;
+using FreeSql.DataAnnotations;
 
 namespace Daily.CoreSwim.Dashboard.MySql;
 
@@ -15,8 +16,8 @@ public class ActuatorDescriptionTable
     /// <summary>
     /// Job是否在线
     /// </summary>
-    [Column(Name = "job_online")]
-    public bool JobOnline { get; set; }
+    [Column(Name = "job_status")]
+    public ActuatorStatus JobStatus { get; set; }
 
     /// <summary>
     /// Job描述

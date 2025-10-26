@@ -12,7 +12,7 @@ public class ActuatorDescription
     /// <summary>
     /// Job是否在线
     /// </summary>
-    public bool JobOnline { get; set; }
+    public ActuatorStatus JobStatus { get; set; }
 
     /// <summary>
     /// Job描述

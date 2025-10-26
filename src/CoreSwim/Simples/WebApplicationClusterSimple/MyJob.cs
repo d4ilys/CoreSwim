@@ -7,7 +7,7 @@ namespace WebApplicationClusterSimple
         public Task ExecuteAsync(CancellationToken cancellationToken)
         {
             //随机异常
-            if (new Random().Next(0, 10) == 5)
+            if (new Random().Next(0, 3) == 1)
             {
                 throw new Exception("测试异常");
             }

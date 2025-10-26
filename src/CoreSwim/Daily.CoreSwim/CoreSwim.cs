@@ -2,11 +2,7 @@
 using Daily.CoreSwim.Actuators;
 using Daily.CoreSwim.Configs;
 using Daily.CoreSwim.Retaining;
-using System.Collections.Concurrent;
-using System.ComponentModel.Design;
 using System.Diagnostics;
-using System.Text.Json;
-using System.Threading.Channels;
 
 namespace Daily.CoreSwim
 {
@@ -34,11 +30,9 @@ namespace Daily.CoreSwim
             var actuator = actuatorBuilder.Build();
             actuator.JobId = jobId;
             actuator.JobType = typeof(TJob);
-            actuator.JobOnline = true;
+            actuator.JobStatus = ActuatorStatus.Ready;
             actuator.StartTime = Penetrates.GetStandardDateTime(DateTime.Now);
-
             Config.ActuatorStore.SaveJobAsync(jobId, actuator);
-            Config.Logger.Info<CoreSwim>($"<{actuator.JobId}> Already added and initialized completed.");
             Config.Aop.AddJobAfter?.Invoke(actuator);
             return this;
         }
@@ -100,6 +94,28 @@ namespace Daily.CoreSwim
             return Config.ActuatorStore.RemoveJob(jobId);
         }
 
+        /// <summary>
+        /// 开始任务
+        /// </summary>
+        /// <param name="jobId"></param>
+        /// <returns></returns>
+        public bool PulseOnJob(string jobId)
+        {
+            Config.Persistence.UpdateJobStatus(jobId, ActuatorStatus.Ready);
+            return Config.ActuatorStore.UpdateStatus(jobId, ActuatorStatus.Ready);
+        }
+
+        /// <summary>
+        /// 暂停任务
+        /// </summary>
+        /// <param name="jobId"></param>
+        /// <returns></returns>
+        public bool PauseJob(string jobId)
+        {
+            Config.Persistence.UpdateJobStatus(jobId, ActuatorStatus.Pause);
+            return Config.ActuatorStore.UpdateStatus(jobId, ActuatorStatus.Pause);
+        }
+
         public void StopAsync()
         {
             Config.ActuatorStore.ClearAllJobs();
@@ -134,79 +150,143 @@ namespace Daily.CoreSwim
         private async Task ExecuteJobAsync(Actuator actuator, DateTime startAt, string triggerType,
             CancellationToken stoppingToken)
         {
+            // 前置AOP调用
             Config.Aop.ExecuteJobBefore?.Invoke(actuator);
+
             var startTime = DateTime.Now;
-            //判断可以执行运行
-            var canItBeExecutedAsync = await CanItBeExecutedAsync(actuator.JobId);
-            var actuatorExecutionRecord = new ActuatorExecutionRecord
+            var executionRecord = new ActuatorExecutionRecord
             {
                 JobId = actuator.JobId,
-                StartTime = startTime,
+                StartTime = startTime
             };
-            if (canItBeExecutedAsync)
+
+            // 检查是否允许执行
+            var canExecute = await CanItBeExecutedAsync(actuator.JobId);
+
+            if (canExecute)
             {
                 var sw = Stopwatch.StartNew();
-
-                //判断是否超过最大运行次数
-                if (actuator.MaxNumberOfRuns != 0)
-                {
-                    if (actuator.NumberOfRuns >= actuator.MaxNumberOfRuns)
-                    {
-                        Config.Logger.Info<CoreSwim>(
-                            $"<{actuator.JobId}> The number of runs has reached the maximum limit and will be deleted.");
-                        RemoveJob(actuator.JobId);
-                    }
-                }
-
-                //判断是否超过最大错误次数
-                if (actuator.MaxNumberOfErrors != 0)
-                {
-                    if (actuator.NumberOfErrors >= actuator.MaxNumberOfErrors)
-                    {
-                        Config.Logger.Info<CoreSwim>(
-                            $"<{actuator.JobId}> The number of errors has reached the maximum limit and will be deleted.");
-                        RemoveJob(actuator.JobId);
-                    }
-                }
-
                 try
                 {
-                    var jobIns = CreateJobIns(actuator, stoppingToken);
-                    await jobIns.ExecuteAsync(stoppingToken);
+                    // 检查最大运行次数和错误次数限制
+                    var (shouldRun, blockReason) = CheckExecutionConstraints(ref actuator);
+
+                    // 检查作业状态
+                    var isReady = CheckJobStatus(ref actuator);
+
+                    if (!shouldRun)
+                    {
+                        Config.Logger.Info<CoreSwim>($"{GetJobLogPrefix(actuator)} {blockReason}");
+                        return;
+                    }
+                    else if (!isReady)
+                    {
+                        Config.Logger.Info<CoreSwim>($"{GetJobLogPrefix(actuator)} Job is not ready.");
+                        return;
+                    }
+                    else
+                    {
+                        // 执行作业
+                        var jobInstance = CreateJobIns(actuator, stoppingToken);
+                        await jobInstance.ExecuteAsync(stoppingToken);
+                    }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    actuatorExecutionRecord.Exception = e.ToString();
+                    executionRecord.Exception = ex.ToString();
                     actuator.NumberOfErrors++;
                     Config.Logger.Error<CoreSwim>(
-                        $" {DateTime.Now:yyyy-MM-dd HH:mm:ss} <{actuator.JobId}> Execution exception occurred .");
+                        $"{GetJobLogPrefix(actuator)} Execution exception at {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 }
                 finally
                 {
                     sw.Stop();
-                    actuatorExecutionRecord.EndTime = DateTime.Now;
-                    actuatorExecutionRecord.TriggerType = triggerType;
-                    actuatorExecutionRecord.Duration = sw.ElapsedMilliseconds;
-                    actuatorExecutionRecord.ExecuteNode = Environment.MachineName;
-
-                    actuator.LastRunTime = startAt;
-                    actuatorExecutionRecord.NumberOfRuns = actuator.NumberOfRuns;
-                    Config.Logger.Info<CoreSwim>(
-                        $"<{actuator.JobId}> Implemented at {DateTime.Now:yyyy-MM-dd HH:mm:ss}.");
+                    actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
                 }
+
+                // 完善执行记录
+                executionRecord.EndTime = DateTime.Now;
+                executionRecord.TriggerType = triggerType;
+                executionRecord.Duration = sw.ElapsedMilliseconds;
+                executionRecord.ExecuteNode = Environment.MachineName;
+                actuator.LastRunTime = startAt;
+
+                Config.Logger.Info<CoreSwim>(
+                    $"{GetJobLogPrefix(actuator)} Executed at {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+
+                // 更新作业状态和执行记录
+                UpdateJobAndRecord(actuator, executionRecord, startAt);
+                await PersistExecutionData(actuator, executionRecord);
             }
 
+            // 不执行时也需要计算下次运行时间
             actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
 
-            if (canItBeExecutedAsync)
-            {
-                actuatorExecutionRecord.NextRunTime = actuator.NextRunTime;
-                Config.Persistence?.SaveJobsExecutionRecordAsync(actuatorExecutionRecord);
-                await Config.ActuatorStore.UpdateJobAsync(actuator.JobId, actuator);
-            }
-
+            // 后置AOP调用
             Config.Aop.ExecuteJobAfter?.Invoke(actuator);
         }
+
+
+        #region 辅助方法
+
+        private string GetJobLogPrefix(Actuator actuator) => $"<{actuator.JobId}>";
+
+        // 检查执行约束（最大运行次数/错误次数）
+        private (bool CanRun, string? BlockReason) CheckExecutionConstraints(ref Actuator actuator)
+        {
+            if (actuator.MaxNumberOfRuns != 0 && actuator.NumberOfRuns >= actuator.MaxNumberOfRuns)
+            {
+                var job = Config.ActuatorStore.GetJob(actuator.JobId);
+
+                if (job?.JobStatus != ActuatorStatus.Restriction)
+                {
+                    Config.ActuatorStore.UpdateStatus(actuator.JobId, ActuatorStatus.Restriction);
+                    Config.Persistence.UpdateJobStatus(actuator.JobId, ActuatorStatus.Restriction);
+                }
+
+                return (false, "The number of runs has reached the maximum limit.");
+            }
+
+            if (actuator.MaxNumberOfErrors != 0 && actuator.NumberOfErrors >= actuator.MaxNumberOfErrors)
+            {
+                var job = Config.ActuatorStore.GetJob(actuator.JobId);
+
+                if (job?.JobStatus != ActuatorStatus.Restriction)
+                {
+                    Config.ActuatorStore.UpdateStatus(actuator.JobId, ActuatorStatus.Restriction);
+                    Config.Persistence.UpdateJobStatus(actuator.JobId, ActuatorStatus.Restriction);
+                }
+
+                return (false, "The number of errors has reached the maximum limit.");
+            }
+
+            return (true, null);
+        }
+
+        private bool CheckJobStatus(ref Actuator actuator)
+        {
+            return actuator.JobStatus == ActuatorStatus.Ready;
+        }
+
+        // 更新作业和记录信息
+        private void UpdateJobAndRecord(Actuator actuator, ActuatorExecutionRecord record, DateTime startAt)
+        {
+            actuator.NextRunTime = actuator.GetNextOccurrence(startAt);
+            actuator.NumberOfRuns++;
+
+            record.NextRunTime = actuator.NextRunTime;
+            record.NumberOfRuns = actuator.NumberOfRuns;
+        }
+
+        // 持久化执行数据
+        private async Task PersistExecutionData(Actuator actuator, ActuatorExecutionRecord record)
+        {
+            await Config.Persistence.SaveJobsExecutionRecordAsync(record);
+
+            await Config.ActuatorStore.UpdateJobAsync(actuator.JobId, actuator);
+        }
+
+        #endregion
 
         protected async Task<bool> BackgroundProcessingAsync(CancellationToken stoppingToken)
         {
@@ -300,6 +380,8 @@ namespace Daily.CoreSwim
                 {
                     job.Value.NextRunTime ??= job.Value.GetNextOccurrence(startAt);
                 }
+
+                Config.Logger.Info<CoreSwim>($"<{job.Value.JobId}> Already added and initialized completed.");
             }
         }
 

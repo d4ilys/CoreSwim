@@ -29,7 +29,17 @@ namespace Daily.CoreSwim.Actuators
             return Task.FromResult(_jobs.GetValueOrDefault(jobId));
         }
 
+        public Actuator? GetJob(string jobId)
+        {
+            return _jobs.GetValueOrDefault(jobId);
+        }
+
         public Task<ConcurrentDictionary<string, Actuator>> GetAllJobAsync()
+        {
+            return Task.FromResult(_jobs);
+        }
+
+        public Task<ConcurrentDictionary<string, Actuator>> GetLocalAllJobAsync()
         {
             return Task.FromResult(_jobs);
         }
@@ -38,6 +48,20 @@ namespace Daily.CoreSwim.Actuators
         {
             return _jobs.TryRemove(jobId, out _);
         }
+
+        public bool UpdateStatus(string jobId, ActuatorStatus status)
+        {
+            if (_jobs.TryGetValue(jobId, out var actuator))
+            {
+                actuator.JobStatus = status;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
 
         public void ClearAllJobs()
         {
