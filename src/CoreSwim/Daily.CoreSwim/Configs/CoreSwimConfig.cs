@@ -11,12 +11,12 @@ namespace Daily.CoreSwim.Configs
         public ICoreSwimLogger Logger { get; set; } = new CoreSwimLogger();
 
         /// <summary>
-        /// 数据持久化
+        /// 任务及执行日志持久化
         /// </summary>
         public CoreSwimPersistence Persistence { get; set; } = new CoreSwimPersistence(coreSwim);
 
         /// <summary>
-        /// 任务存储
+        /// 所有任务存储方式
         /// </summary>
         public IActuatorStore ActuatorStore { get; set; } = new ActuatorStore();
 

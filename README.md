@@ -1,6 +1,11 @@
 # 定时作业平台
 
-## 简单模式
+
+
+✨ [简单实例化](#实例化) <br />
+☁️ [DependencyInjection](#DependencyInjection) <br />🎭 [Dashboard](#Dashboard) <br />
+
+## 实例化
 
 ### 单机模式
 
@@ -8,7 +13,7 @@
 >
 > Install-Pakcage Daily.CoreSwim
 
-**需要注意的是 CoreSwim 一点要单例模式**
+**需要注意的是 CoreSwim 一定要`单例模式`**
 
 ~~~C#
 var coreSwim = new CoreSwim();
@@ -48,7 +53,33 @@ coreSwim.AddJob<MyJob02>(CoreSwimActuator.DailyAt(2));  // 每天凌晨2点执�
 await coreSwim.StartAsync(CancellationToken.None); 
 ~~~
 
+实现IJob
+
+~~~c#
+//这里不支持有参构造函数
+public class MyJob01 : IJob
+{
+    public Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss}-我是第一个任务我执行了..");
+        return Task.CompletedTask;
+    }
+}
+~~~
+
+### Job类支持构造函数注入
+
+1.可以安装提供的DependencyInjection
+
+2.由于Job类反射创建，可以配置使用官方自带的ActivatorUtilities 来支持构造函数注入
+
+~~~C#
+coreSwim.Config.ActivatorCreateInstance = type => ActivatorUtilities.CreateInstance(provider, type);
+~~~
+
 ## DependencyInjection
+
+在使用ASP.NET Core WorkerService时，可以使用 DependencyInjection
 
 ### 单机模式
 
@@ -86,13 +117,6 @@ using FreeRedis;
 using WebApplicationClusterSimple;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-
-builder.Services.AddCors(options => options.AddPolicy("daily",
-    policyBuilder => { policyBuilder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); }));
 
 builder.Services.AddSingleton(provider =>
 {
@@ -200,7 +224,6 @@ builder.Services.AddCoreSwimDashboard().UseFreeSql(options =>
     options.ConnectionString =
         "Data Source=192.168.1.123;Port=3306;User ID=root;Password=123456; Initial Catalog=core_swim_test;Charset=utf8; SslMode=none;";
 });
-
 
 var app = builder.Build();
 
