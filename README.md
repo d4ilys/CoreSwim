@@ -9,8 +9,8 @@
 
 ### 单机模式
 
-> 适合控制台项目
->
+**适合控制台项目**
+
 > Install-Pakcage Daily.CoreSwim
 
 **需要注意的是 CoreSwim 一定要`单例模式`**
@@ -38,9 +38,9 @@ public class MyJob01 : IJob
 
 ### 集群模式
 
-> 集群模式下，所有节点在执行任务时，会互相抢任务，确保同一个任务只在一个节点上执行
->
-> Daily.CoreSwim.Cluster
+**集群模式下，所有节点在执行任务时，会互相抢任务，确保同一个任务只在一个节点上执行**
+
+> Install-Pakcage Daily.CoreSwim.Cluster
 
 **需要注意的是 CoreSwimCluster 一点要单例模式**
 
