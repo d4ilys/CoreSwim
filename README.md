@@ -5,6 +5,8 @@
 ✨ [简单实例化](#实例化) <br />
 ☁️ [DependencyInjection](#DependencyInjection) <br />🎭 [Dashboard](#Dashboard) <br />
 
+[d4ilys/CoreSwim: 支持分布式的 定时调度作业平台](https://github.com/d4ilys/CoreSwim)
+
 ## 实例化
 
 ### 单机模式
@@ -79,7 +81,7 @@ coreSwim.Config.ActivatorCreateInstance = type => ActivatorUtilities.CreateInsta
 
 ## DependencyInjection
 
-在使用ASP.NET Core WorkerService时，可以使用 DependencyInjection
+在使用ASP.NET Core / WorkerService时，可以使用 DependencyInjection
 
 ### 单机模式
 
