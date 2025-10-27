@@ -138,26 +138,5 @@ namespace Daily.CoreSwim.Dashboard
 
             return app;
         }
-
-        public static CoreSwimDashboardBuilder AddCoreSwim(this IServiceCollection services, Action<ICoreSwim> options)
-        {
-            var func = options;
-            services.AddSingleton(provider =>
-            {
-                ICoreSwim coreSwim = new CoreSwim();
-                func(coreSwim);
-                coreSwim.Config.Logger = new AspNetCoreLogger(provider.GetService<ILogger<ICoreSwimLogger>>()!);
-                return coreSwim;
-            });
-
-            services.AddHostedService<CoreSwimHostedService>();
-
-            return new CoreSwimDashboardBuilder(services);
-        }
-
-        public static CoreSwimDashboardBuilder AddCoreSwimDashboard(this IServiceCollection services)
-        {
-            return new CoreSwimDashboardBuilder(services);
-        }
     }
 }

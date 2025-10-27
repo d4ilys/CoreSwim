@@ -1,5 +1,6 @@
 using Daily.CoreSwim.Actuators;
 using Daily.CoreSwim.Dashboard;
+using Daily.CoreSwim.DependencyInjection;
 using WebApplicationSimple;
 
 var builder = WebApplication.CreateBuilder(args);

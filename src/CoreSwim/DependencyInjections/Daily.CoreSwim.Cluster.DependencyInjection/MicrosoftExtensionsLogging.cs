@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Daily.CoreSwim.Abstraction;
+﻿using Daily.CoreSwim.Abstraction;
 using Microsoft.Extensions.Logging;
 
-namespace Daily.CoreSwim.Dashboard
+namespace Daily.CoreSwim.Cluster.DependencyInjection
 {
-    internal class AspNetCoreLogger(ILogger<ICoreSwimLogger> logger): ICoreSwimLogger
+    internal class MicrosoftExtensionsLogging(ILogger<ICoreSwimLogger> logger): ICoreSwimLogger
     {
         public void Info<T>(string text)
         {

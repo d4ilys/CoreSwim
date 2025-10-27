@@ -14,9 +14,6 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="FreeRedis" Version="1.5.0" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="logo.png">
@@ -25,8 +22,14 @@
 		</None>
 	</ItemGroup>
 
+
 	<ItemGroup>
-		<ProjectReference Include="..\Daily.CoreSwim\Daily.CoreSwim.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Daily.CoreSwim.Cluster\Daily.CoreSwim.Cluster.csproj" />
 	</ItemGroup>
 
 </Project>

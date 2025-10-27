@@ -1,9 +1,7 @@
-﻿using Daily.CoreSwim.Abstraction;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace Daily.CoreSwim.Dashboard
+namespace Daily.CoreSwim.Cluster.DependencyInjection
 {
     internal class CoreSwimHostedService(ICoreSwim swim, IServiceProvider provider) : IHostedService
     {

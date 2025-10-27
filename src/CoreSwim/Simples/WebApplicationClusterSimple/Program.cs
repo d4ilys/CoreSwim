@@ -1,8 +1,9 @@
 using Daily.CoreSwim.Actuators;
+using Daily.CoreSwim.Cluster.DependencyInjection;
 using Daily.CoreSwim.Dashboard;
 using Daily.CoreSwim.Dashboard.Cluster;
-using Daily.CoreSwim.Dashboard.MySql;
 using FreeRedis;
+using FreeSql;
 using WebApplicationClusterSimple;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,13 +36,11 @@ builder.Services.AddCoreSwimCluster(provider => provider.GetRequiredService<Redi
         CoreSwimActuator.Period(3000 * 60).SetDescription("3000 * 60ºÁÃëÖ´ÐÐÒ»´Î"));
 });
 
-builder.Services.AddCoreSwimDashboard().UseMySql(options =>
+builder.Services.AddCoreSwimDashboard().UseFreeSql(options =>
 {
-    options.Host = "192.168.1.116";
-    options.Port = 3306;
-    options.User = "root";
-    options.Password = "123456";
-    options.DatabaseName = "core_swim_test";
+    options.DataType = DataType.MySql;
+    options.ConnectionString =
+        "Data Source=192.168.1.116;Port=3306;User ID=root;Password=123456; Initial Catalog=core_swim_test;Charset=utf8; SslMode=none;";
 });
 
 var app = builder.Build();

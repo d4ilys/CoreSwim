@@ -1,7 +1,7 @@
 ﻿using Daily.CoreSwim.Actuators;
 using Daily.CoreSwim.Configs;
 
-namespace Daily.CoreSwim.Dashboard.MySql
+namespace Daily.CoreSwim.Dashboard.Cluster
 {
     public class CoreSwimMySqlPersistence(ICoreSwim coreSwim, IFreeSql db) : CoreSwimPersistence(coreSwim)
     {

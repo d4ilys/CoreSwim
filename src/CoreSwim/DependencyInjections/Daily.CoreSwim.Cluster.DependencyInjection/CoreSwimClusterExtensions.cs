@@ -1,12 +1,11 @@
 ﻿using Daily.CoreSwim.Abstraction;
-using Daily.CoreSwim.Cluster;
 using FreeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Daily.CoreSwim.Dashboard.Cluster
+namespace Daily.CoreSwim.Cluster.DependencyInjection
 {
-    public static class CoreSwimDashboardExtension
+    public static class CoreSwimClusterExtensions
     {
         public static IServiceCollection AddCoreSwimCluster(this IServiceCollection services,
             Func<IServiceProvider, RedisClient> redisClient,
@@ -17,7 +16,7 @@ namespace Daily.CoreSwim.Dashboard.Cluster
             {
                 ICoreSwim coreSwim = new CoreSwimCluster(redisClient(provider));
                 func(coreSwim);
-                coreSwim.Config.Logger = new AspNetCoreLogger(provider.GetService<ILogger<ICoreSwimLogger>>()!);
+                coreSwim.Config.Logger = new MicrosoftExtensionsLogging(provider.GetService<ILogger<ICoreSwimLogger>>()!);
                 return coreSwim;
             });
 

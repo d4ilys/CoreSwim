@@ -1,9 +1,9 @@
 ﻿using Daily.CoreSwim.Abstraction;
 using Microsoft.Extensions.Logging;
 
-namespace Daily.CoreSwim.Dashboard.Cluster
+namespace Daily.CoreSwim.DependencyInjection
 {
-    internal class AspNetCoreLogger(ILogger<ICoreSwimLogger> logger): ICoreSwimLogger
+    internal class MicrosoftExtensionsLogging(ILogger<ICoreSwimLogger> logger): ICoreSwimLogger
     {
         public void Info<T>(string text)
         {

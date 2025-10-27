@@ -1,6 +1,6 @@
 ﻿using FreeSql.DataAnnotations;
 
-namespace Daily.CoreSwim.Dashboard.MySql
+namespace Daily.CoreSwim.Dashboard.Cluster
 {
     [Table(Name = "core_swim_actuator_execution_record")]
     [Index("job_id_index", "job_id")]

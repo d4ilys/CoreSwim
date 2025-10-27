@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Daily.CoreSwim.Abstraction;
+﻿using Daily.CoreSwim.Abstraction;
 using Daily.CoreSwim.Actuators;
 
-namespace Daily.CoreSwim.Dashboard.MySql
+namespace Daily.CoreSwim.Dashboard.Cluster
 {
     internal class CleanUpExpiredDataJob(IFreeSql db, CoreSwimDashboardMySqlOptions options) : IJob
     {

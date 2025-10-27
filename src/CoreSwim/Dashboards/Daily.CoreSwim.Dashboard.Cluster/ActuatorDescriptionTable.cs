@@ -1,7 +1,7 @@
 ﻿using Daily.CoreSwim.Actuators;
 using FreeSql.DataAnnotations;
 
-namespace Daily.CoreSwim.Dashboard.MySql;
+namespace Daily.CoreSwim.Dashboard.Cluster;
 
 [Table(Name = "core_swim_actuator_description")]
 [Index("job_id_index", "job_id")]
