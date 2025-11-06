@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Authors>Daily</Authors>
-		<Version>0.0.0.3</Version>
+		<Version>0.0.0.5</Version>
 		<Description>支持分布式的 定时调度作业平台</Description>
 		<IsPackable>true</IsPackable>
 		<RepositoryUrl>https://github.com/d4ilys/CoreSwim</RepositoryUrl>

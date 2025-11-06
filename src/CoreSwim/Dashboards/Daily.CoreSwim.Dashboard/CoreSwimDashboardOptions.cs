@@ -4,5 +4,7 @@
     {
         public string DashboardPath { get; set; } = "CoreSwim";
 
+        public List<string> IpWhitelist { get; set; } = new();
+
     }
 }
