@@ -115,6 +115,11 @@ namespace Daily.CoreSwim.Dashboard
 
         private bool IsIpWhitelisted(HttpContext context, string path)
         {
+            if (_options.IpWhitelist.Count == 0)
+            {
+                return true;
+            }
+
             var pattern = @$"^/?{_options.DashboardPath}.*";
             var regex = new Regex(pattern, RegexOptions.IgnoreCase);
             if (regex.IsMatch(path))

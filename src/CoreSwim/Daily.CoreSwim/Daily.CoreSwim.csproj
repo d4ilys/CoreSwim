@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Daily.CoreSwim</RootNamespace>
 		<Authors>Daily</Authors>
-		<Version>0.0.0.3</Version>
+		<Version>0.0.0.6</Version>
 		<Description>支持分布式的 定时调度作业平台</Description>
 		<IsPackable>true</IsPackable>
 		<RepositoryUrl>https://github.com/d4ilys/CoreSwim</RepositoryUrl>
